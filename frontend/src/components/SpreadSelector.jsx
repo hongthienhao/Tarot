@@ -246,7 +246,7 @@ const SpreadSelector = () => {
               </div>
 
               <CardFan 
-                count={22} 
+                count={78} 
                 onSelect={handleSelectFromFan} 
                 isDrawing={drawnCards.length >= targetQuantity}
               />
@@ -295,12 +295,14 @@ const SpreadSelector = () => {
                            <div className="flex items-center gap-2 px-3 py-1 bg-mystic-dark/80 border border-mystic-gold/20 rounded-full text-mystic-gold/60 text-[9px] uppercase tracking-[0.2em] font-bold">
                              <Hash size={10} /> <span>Lá bài #{index + (rowIndex * 4) + 1}</span>
                            </div>
-                           <TarotCard 
-                             card={card} 
-                             index={index} 
-                             isRevealed={revealedCardIds.has(card.id)}
-                             onFlip={handleFlip}
-                           />
+                           <div className="w-[160px] md:w-[260px]">
+                             <TarotCard 
+                               card={card} 
+                               index={index} 
+                               isRevealed={revealedCardIds.has(card.id)}
+                               onFlip={handleFlip}
+                             />
+                           </div>
                         </div>
                       ))}
                     </div>
@@ -323,7 +325,7 @@ const SpreadSelector = () => {
                               className={`glass p-10 rounded-[2.5rem] transition-all ${!revealedCardIds.has(card.id) ? 'opacity-30 blur-sm grayscale select-none' : 'opacity-100'}`}
                             >
                               <div className="flex flex-col md:flex-row gap-10 md:gap-16 items-center md:items-start">
-                                <div className="w-full max-w-[85vw] md:w-[450px] aspect-[1/1.7] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-4 border-mystic-gold/20 shadow-[0_30px_60px_rgba(0,0,0,0.8)] shrink-0">
+                                <div className="w-full max-w-[85vw] md:w-[336px] aspect-[1/1.7] rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-4 border-mystic-gold/20 shadow-[0_30px_60px_rgba(0,0,0,0.8)] shrink-0">
                                   <img src={card.image} className={`w-full h-full object-cover ${card.isReversed ? 'rotate-180' : ''}`} alt={card.name} />
                                 </div>
                                 <div className="pt-6 text-center md:text-left flex-1">

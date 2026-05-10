@@ -24,7 +24,7 @@ const TarotCard = ({ card, index, onFlip, isRevealed: controlledIsRevealed, isSe
         type: "spring", 
         stiffness: 50 
       }}
-      className="relative w-full max-w-[95vw] md:max-w-[900px] aspect-[1/1.7] perspective-1000 cursor-pointer group mx-auto"
+      className="relative w-full max-w-none aspect-[1/1.7] perspective-1000 cursor-pointer group mx-auto"
       onClick={handleFlip}
     >
       <motion.div
