@@ -110,7 +110,10 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
           <div 
             key={layer.id} 
             className="absolute w-full flex items-center justify-center overflow-visible"
-            style={{ transform: `translateY(${layer.yOffset}px)` }}
+            style={{ 
+              transform: `translateY(${layer.yOffset}px)`,
+              zIndex: activeLayerIndex === layer.id ? 1000 : (layer.id * 10)
+            }}
           >
             {Array.from({ length: 26 }).map((_, i) => {
               const cardIndex = layer.start + i;
@@ -167,7 +170,7 @@ const FanCard = ({ index, layerIndex, activeLayerIndex, isActiveLayer, hoveredCa
   // Stays on the arc, no jumping out
   const displayY = y; 
   const displayX = x + pushX;
-  const displayRotate = isHovered ? 0 : rotation + pushRotate;
+  const displayRotate = rotation + pushRotate;
 
   return (
     <motion.div
