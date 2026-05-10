@@ -1,16 +1,39 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: tarot-postgres
+    container_name: mystic-tarot-db
     restart: always
     environment:
       POSTGRES_USER: tarot_user
       POSTGRES_PASSWORD: tarot_password
       POSTGRES_DB: tarot_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build: .
+    container_name: mystic-tarot-api
+    ports:
+      - "3001:3000"
+    environment:
+      - DATABASE_URL=postgresql://tarot_user:tarot_password@db:5432/tarot_db?schema=public
+      - PORT=3000
+      - NODE_ENV=development
+    depends_on:
+      - db
+
+  frontend:
+    build: 
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:3001/api/v1
+    container_name: mystic-tarot-web
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
 
 volumes:
   pgdata:

@@ -7,12 +7,18 @@ import rateLimit from 'express-rate-limit';
 import AppError from './utils/appError.js';
 import globalErrorHandler from './middlewares/errorMiddleware.js';
 import healthRouter from './routes/healthRoutes.js';
+import cardRouter from './routes/cardRoutes.js';
+import { setupSwagger } from './config/swagger.js';
 
 const app = express();
 
-// 1) GLOBAL MIDDLEWARES
 // Set security HTTP headers
+// Note: helmet might block swagger UI CSS/JS if not configured properly, 
+// but for development it's usually fine.
 app.use(helmet());
+
+// Setup Swagger
+setupSwagger(app);
 
 // Development logging
 if (process.env.NODE_ENV === 'development') {
@@ -36,7 +42,8 @@ app.use(express.json({ limit: '10kb' }));
 app.use(cors());
 
 // 2) ROUTES
-app.use('/v1/health', healthRouter);
+app.use('/api/v1/health', healthRouter);
+app.use('/api/v1/cards', cardRouter);
 
 // Handle unhandled routes
 app.use((req, res, next) => {
