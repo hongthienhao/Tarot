@@ -14,19 +14,53 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
   }, []);
 
   const isMobile = windowWidth < 768;
-  const fanRadius = isMobile ? 550 : 850;
+  const fanRadius = isMobile ? 600 : 900;
   const fanArcAngle = isMobile ? 60 : 65;
-  const cardWidth = isMobile ? 60 : 100;
+  const cardWidth = isMobile ? 77 : 126;
   const cardHeight = cardWidth * 1.7;
   
   const estimatedWidth = (fanRadius * Math.sin((fanArcAngle/2) * Math.PI / 180) * 2) + cardWidth;
-  const scale = Math.min(0.85, (windowWidth - 40) / estimatedWidth);
+  const scale = Math.min(1.0, (windowWidth - 40) / estimatedWidth);
 
   const layers = [
-    { id: 0, start: 0, end: 25, yOffset: isMobile ? -250 : -350 },
+    { id: 0, start: 0, end: 25, yOffset: isMobile ? -210 : -280 },
     { id: 1, start: 26, end: 51, yOffset: 0 },
-    { id: 2, start: 52, end: 77, yOffset: isMobile ? 250 : 350 },
+    { id: 2, start: 52, end: 77, yOffset: isMobile ? 210 : 280 },
   ];
+
+  const handleTouchEnd = () => {
+    if (!isDrawing) {
+      if (hoveredCardIndex !== null) {
+        onSelect(hoveredCardIndex);
+      }
+      setHoveredCardIndex(null);
+      setActiveLayerIndex(null);
+    }
+  };
+
+  // Add a global window listener to catch fast mouse movements leaving the area
+  useEffect(() => {
+    const handleWindowMouseMove = (e) => {
+      if (!containerRef.current || isMobile) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      // If mouse is far outside the container, clear everything
+      const padding = 100;
+      if (
+        e.clientX < rect.left - padding || 
+        e.clientX > rect.right + padding || 
+        e.clientY < rect.top - padding || 
+        e.clientY > rect.bottom + padding
+      ) {
+        if (activeLayerIndex !== null || hoveredCardIndex !== null) {
+          setActiveLayerIndex(null);
+          setHoveredCardIndex(null);
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    return () => window.removeEventListener('mousemove', handleWindowMouseMove);
+  }, [activeLayerIndex, hoveredCardIndex, isMobile]);
 
   const detectInteraction = (px, py) => {
     if (!containerRef.current) return;
@@ -34,34 +68,55 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
     
-    // Scale-aware coordinates
     const dx = (px - centerX) / scale;
     const dy = (py - centerY) / scale;
     
     let foundLayerIdx = null;
     let foundCardIdx = null;
 
-    for (const layer of layers) {
+    const getLayerHit = (layer, isCurrentlyActive) => {
       const relativeYInLayer = dy - layer.yOffset;
       const arcDy = relativeYInLayer - fanRadius;
-      
-      const distance = Math.sqrt(dx * dx + arcDy * arcDy);
-      const angle = Math.atan2(dx, -arcDy) * (180 / Math.PI);
+      const dist = Math.sqrt(dx * dx + arcDy * arcDy);
+      const ang = Math.atan2(dx, -arcDy) * (180 / Math.PI);
 
-      // Increased hit-test area for better edge selection
-      const isWithinRadius = Math.abs(distance - fanRadius) < (cardHeight / 2 + 40);
-      const isWithinAngle = Math.abs(angle) < (fanArcAngle / 2 + 15);
+      // Active layer padding
+      const rPadding = isCurrentlyActive ? 70 : 40;
+      const aPadding = isCurrentlyActive ? 22 : 12;
+
+      const isWithinRadius = Math.abs(dist - fanRadius) < (cardHeight / 2 + rPadding);
+      const isWithinAngle = Math.abs(ang) < (fanArcAngle / 2 + aPadding);
 
       if (isWithinRadius && isWithinAngle) {
-        foundLayerIdx = layer.id;
-        // Clamp the normalized value between 0 and 1 for easier edge selection
-        const normalized = Math.max(0, Math.min(1, (angle + fanArcAngle / 2) / fanArcAngle));
+        const normalized = Math.max(0, Math.min(1, (ang + fanArcAngle / 2) / fanArcAngle));
         const idxInLayer = Math.round(normalized * 25);
-        foundCardIdx = layer.start + idxInLayer;
-        break;
+        return { hit: true, cardIdx: layer.start + idxInLayer };
+      }
+      return { hit: false };
+    };
+
+    // 1. Check current active layer first
+    if (activeLayerIndex !== null) {
+      const activeHit = getLayerHit(layers[activeLayerIndex], true);
+      if (activeHit.hit) {
+        foundLayerIdx = activeLayerIndex;
+        foundCardIdx = activeHit.cardIdx;
       }
     }
 
+    // 2. Check other layers if no active hit
+    if (foundLayerIdx === null) {
+      for (const layer of layers) {
+        const result = getLayerHit(layer, false);
+        if (result.hit) {
+          foundLayerIdx = layer.id;
+          foundCardIdx = result.cardIdx;
+          break;
+        }
+      }
+    }
+
+    // Explicitly set to null if nothing found to clear any stuck states
     setActiveLayerIndex(foundLayerIdx);
     setHoveredCardIndex(foundCardIdx);
   };
@@ -77,14 +132,6 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
     const touch = e.touches[0];
     const rect = containerRef.current.getBoundingClientRect();
     detectInteraction(touch.clientX - rect.left, touch.clientY - rect.top);
-  };
-
-  const handleTouchEnd = () => {
-    if (hoveredCardIndex !== null && !isDrawing) {
-      onSelect(hoveredCardIndex);
-      setHoveredCardIndex(null);
-      setActiveLayerIndex(null);
-    }
   };
 
   return (
@@ -134,7 +181,8 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
                   layerIndex={layer.id}
                   activeLayerIndex={activeLayerIndex}
                   isActiveLayer={layer.id === activeLayerIndex}
-                  hoveredCardIndex={hoveredCardIndex}
+                  // Enforce reset: if no layer is active, no card should be hovered
+                  hoveredCardIndex={activeLayerIndex === null ? null : hoveredCardIndex}
                   x={x}
                   y={y}
                   rotation={angleInDegrees}
@@ -161,8 +209,8 @@ const FanCard = ({ index, layerIndex, activeLayerIndex, isActiveLayer, hoveredCa
   if (isNeighbor && !isHovered) {
     const diff = index - hoveredCardIndex;
     const strength = 3 - Math.abs(diff);
-    pushX = diff * strength * (isMobile ? 18 : 35);
-    pushRotate = diff * strength * 4;
+    pushX = diff * strength * (isMobile ? 22 : 45);
+    pushRotate = diff * strength * 5;
   }
 
   const springConfig = { stiffness: 600, damping: 45 };
