@@ -15,17 +15,17 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
 
   const isMobile = windowWidth < 768;
   const fanRadius = isMobile ? 550 : 850;
-  const fanArcAngle = isMobile ? 80 : 85;
-  const cardWidth = isMobile ? 70 : 120;
+  const fanArcAngle = isMobile ? 60 : 65;
+  const cardWidth = isMobile ? 60 : 100;
   const cardHeight = cardWidth * 1.7;
   
   const estimatedWidth = (fanRadius * Math.sin((fanArcAngle/2) * Math.PI / 180) * 2) + cardWidth;
-  const scale = Math.min(1, (windowWidth - 40) / estimatedWidth);
+  const scale = Math.min(0.85, (windowWidth - 40) / estimatedWidth);
 
   const layers = [
-    { id: 0, start: 0, end: 25, yOffset: isMobile ? -150 : -220 },
-    { id: 1, start: 26, end: 51, yOffset: isMobile ? 50 : 40 },
-    { id: 2, start: 52, end: 77, yOffset: isMobile ? 250 : 300 },
+    { id: 0, start: 0, end: 25, yOffset: isMobile ? -250 : -350 },
+    { id: 1, start: 26, end: 51, yOffset: 0 },
+    { id: 2, start: 52, end: 77, yOffset: isMobile ? 250 : 350 },
   ];
 
   const detectInteraction = (px, py) => {
@@ -48,12 +48,14 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
       const distance = Math.sqrt(dx * dx + arcDy * arcDy);
       const angle = Math.atan2(dx, -arcDy) * (180 / Math.PI);
 
-      const isWithinRadius = Math.abs(distance - fanRadius) < (cardHeight / 2);
-      const isWithinAngle = Math.abs(angle) < (fanArcAngle / 2);
+      // Increased hit-test area for better edge selection
+      const isWithinRadius = Math.abs(distance - fanRadius) < (cardHeight / 2 + 40);
+      const isWithinAngle = Math.abs(angle) < (fanArcAngle / 2 + 15);
 
       if (isWithinRadius && isWithinAngle) {
         foundLayerIdx = layer.id;
-        const normalized = (angle + fanArcAngle / 2) / fanArcAngle;
+        // Clamp the normalized value between 0 and 1 for easier edge selection
+        const normalized = Math.max(0, Math.min(1, (angle + fanArcAngle / 2) / fanArcAngle));
         const idxInLayer = Math.round(normalized * 25);
         foundCardIdx = layer.start + idxInLayer;
         break;
