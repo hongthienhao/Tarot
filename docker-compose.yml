@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: tarot-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: tarot_user
+      POSTGRES_PASSWORD: tarot_password
+      POSTGRES_DB: tarot_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+    driver: local
