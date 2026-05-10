@@ -160,7 +160,7 @@ const FanCard = ({ index, layerIndex, activeLayerIndex, isActiveLayer, hoveredCa
     pushRotate = diff * strength * 4;
   }
 
-  const springConfig = { stiffness: 400, damping: 40 };
+  const springConfig = { stiffness: 600, damping: 45 };
   const scale = isHovered ? (isMobile ? 1.5 : 1.8) : (isNeighbor ? 0.85 : 1);
   const zIndex = isHovered ? 9000 : (layerIndex * 100 + index);
   
