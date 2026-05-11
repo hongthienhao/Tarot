@@ -83,7 +83,7 @@ export const drawCards = catchAsync(async (req, res, next) => {
 });
 
 export const generateReading = catchAsync(async (req, res, next) => {
-  const { cards, spreadType, message, history } = req.body;
+  const { cards, spreadType, message, history, readingId } = req.body;
 
   if (!cards || !Array.isArray(cards) || cards.length === 0) {
     return next(new AppError('Vui lòng cung cấp danh sách các lá bài đã rút.', 400));
@@ -112,32 +112,61 @@ export const generateReading = catchAsync(async (req, res, next) => {
       }
     }
 
+    let savedReadingId = readingId;
+
     // Tự động lưu vào Nhật ký linh hồn nếu đã đăng nhập
     if (req.user) {
       try {
-        await prisma.reading.create({
-          data: {
-            userId: req.user.id,
-            spreadName: spreadType || 'Trải bài Tarot',
-            userQuestion: message || 'Giải bài tổng quan',
-            interpretation: fullInterpretation,
-            readingCards: {
-              create: cards.map((card, index) => ({
-                cardId: card.id,
-                position: card.position || index + 1,
-                isReversed: card.isReversed || false,
-              })),
+        if (readingId) {
+          // Cập nhật phiên trải bài hiện tại
+          const currentReading = await prisma.reading.findUnique({ where: { id: readingId } });
+          
+          if (!currentReading.interpretation) {
+            // Lần giải luận đầu tiên cho phiên này
+            await prisma.reading.update({
+              where: { id: readingId },
+              data: { 
+                userQuestion: message || 'Giải bài tổng quan',
+                interpretation: fullInterpretation 
+              }
+            });
+          } else {
+            // Các câu hỏi hỏi thêm sau đó (Chat)
+            const newNote = `**Bạn**: ${message || 'Hỏi thêm'}\n\n**Bậc thầy Tarot**: ${fullInterpretation}`;
+            const updatedNotes = currentReading.notes ? `${currentReading.notes}\n\n---\n\n${newNote}` : newNote;
+            
+            await prisma.reading.update({
+              where: { id: readingId },
+              data: { notes: updatedNotes }
+            });
+          }
+        } else {
+          // Tạo mới phiên trải bài
+          const newReading = await prisma.reading.create({
+            data: {
+              userId: req.user.id,
+              spreadName: spreadType || 'Trải bài Tarot',
+              userQuestion: message || 'Giải bài tổng quan',
+              interpretation: fullInterpretation,
+              readingCards: {
+                create: cards.map((card, index) => ({
+                  cardId: card.id,
+                  position: card.position || index + 1,
+                  isReversed: card.isReversed || false,
+                })),
+              },
             },
-          },
-        });
+          });
+          savedReadingId = newReading.id;
+        }
       } catch (saveError) {
         console.error('Lỗi khi tự động lưu trải bài:', saveError);
         // Không chặn stream kết thúc nếu lỗi lưu DB
       }
     }
 
-    // Đánh dấu kết thúc stream
-    res.write('data: [DONE]\n\n');
+    // Đánh dấu kết thúc stream và trả về readingId để Frontend tiếp tục sử dụng
+    res.write(`data: ${JSON.stringify({ done: true, readingId: savedReadingId })}\n\n`);
     res.end();
   } catch (error) {
     console.error('Lỗi khi stream AI reading:', error);

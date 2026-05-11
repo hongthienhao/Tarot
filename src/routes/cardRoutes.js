@@ -27,7 +27,7 @@ const router = express.Router();
  *       400:
  *         description: Invalid input
  */
-router.post('/draw', drawCards);
+router.post('/draw', optionalProtect, drawCards);
 
 /**
  * @swagger

@@ -51,7 +51,7 @@ model Reading {
 model ReadingCard {
   id         String    @id @default(uuid())
   readingId  String
-  reading    Reading   @relation(fields: [readingId], references: [id])
+  reading    Reading   @relation(fields: [readingId], references: [id], onDelete: Cascade)
   cardId     String
   card       TarotCard @relation(fields: [cardId], references: [id])
   position   Int

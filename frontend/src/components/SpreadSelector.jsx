@@ -229,6 +229,28 @@ const SpreadSelector = () => {
   const [targetQuantity, setTargetQuantity] = useState(0);
   const [selectedFanIndices, setSelectedFanIndices] = useState(new Set());
   const [isHoveringFan, setIsHoveringFan] = useState(false);
+  const [currentReadingId, setCurrentReadingId] = useState(null);
+
+  const autoSaveReading = useCallback(async (cards, spreadInfo) => {
+    if (!isAuthenticated) return;
+    try {
+      const cardsData = cards.map((c, i) => ({ 
+        cardId: c.id, 
+        position: i + 1, 
+        isReversed: c.isReversed 
+      }));
+      const response = await apiClient.post('/readings', {
+        cards: cardsData,
+        spreadName: spreadInfo?.name || 'Trải bài Tarot',
+      });
+      if (response.data?.data?.reading?.id) {
+        setCurrentReadingId(response.data.data.reading.id);
+        console.log('Auto-saved reading session:', response.data.data.reading.id);
+      }
+    } catch (error) {
+      console.error('Failed to auto-save reading:', error);
+    }
+  }, [isAuthenticated]);
 
   // Refs for scroll targets
   const sectionRef = useRef(null);
@@ -309,6 +331,10 @@ const SpreadSelector = () => {
     setAvailableCards(newAvailable);
     
     if (newAvailable.length === 0) {
+      // Trigger auto-save immediately once all cards are picked
+      const allDrawn = [...drawnCards, nextCard];
+      autoSaveReading(allDrawn, pendingSpread);
+
       // Wait for gold-exit animation (800ms) before transitioning
       setTimeout(() => {
         setMode('reading');
@@ -338,25 +364,9 @@ const SpreadSelector = () => {
     setChatInput('');
     setChatHistory([]);
     setAiStatus('idle');
+    setCurrentReadingId(null);
   };
 
-  const handleSaveReading = async () => {
-    if (!isAuthenticated) return;
-    try {
-      const cardsData = drawnCards.map((card, index) => ({
-        cardId: card.id,
-        position: index + 1,
-        isReversed: card.isReversed || false,
-      }));
-      const notes = chatHistory.map(msg => `**${msg.role === 'user' ? 'Bạn' : 'Bậc thầy Tarot'}**: ${msg.text}`).join('\n\n---\n\n');
-      
-      await apiClient.post('/readings', { cards: cardsData, notes });
-      alert("Đã lưu trải bài thành công!");
-    } catch (error) {
-      console.error('Error saving reading:', error);
-      alert("Không thể lưu trải bài. Vui lòng thử lại.");
-    }
-  };
 
   const handleRequestAIReading = async (userMessage) => {
     if (drawnCards.length === 0) return;
@@ -389,7 +399,8 @@ const SpreadSelector = () => {
           cards: drawnCards, 
           spreadType: readingResult?.spreadName, 
           message: msgToSend,
-          history: currentHistory
+          history: currentHistory,
+          readingId: currentReadingId
         })
       });
 
@@ -416,6 +427,11 @@ const SpreadSelector = () => {
             }
             try {
               const data = JSON.parse(dataStr);
+              if (data.done && data.readingId) {
+                setCurrentReadingId(data.readingId);
+                setAiStatus('idle');
+                break;
+              }
               if (data.error) {
                 aiResponseText += '\n[Lỗi: ' + data.error + ']';
                 setChatHistory(prev => {
@@ -716,9 +732,20 @@ const SpreadSelector = () => {
                       {/* AI Sidebar */}
                       <div className="lg:col-span-1">
                         <div className="glass p-8 rounded-3xl border-mystic-gold/30 bg-gradient-to-b from-mystic-gold/5 to-transparent sticky top-32 flex flex-col max-h-[85vh]">
-                           <div className="flex items-center gap-3 mb-6 shrink-0">
-                             <BrainCircuit className="text-mystic-gold animate-pulse" size={28} />
-                             <h3 className="text-xl font-serif gold-text">AI Oracle</h3>
+                            <div className="flex items-center justify-between mb-6 shrink-0">
+                             <div className="flex items-center gap-3">
+                               <div className="p-2 bg-mystic-gold/20 rounded-lg">
+                                 <BrainCircuit className="text-mystic-gold animate-pulse" size={20} />
+                               </div>
+                               <h3 className="text-lg font-serif gold-text tracking-wider">Soul Oracle</h3>
+                             </div>
+                             {aiStatus === 'streaming' && (
+                               <div className="flex gap-1">
+                                 <motion.span animate={{opacity:[0.3,1,0.3]}} transition={{duration:1,repeat:Infinity}} className="w-1.5 h-1.5 bg-mystic-gold rounded-full" />
+                                 <motion.span animate={{opacity:[0.3,1,0.3]}} transition={{duration:1,delay:0.2,repeat:Infinity}} className="w-1.5 h-1.5 bg-mystic-gold rounded-full" />
+                                 <motion.span animate={{opacity:[0.3,1,0.3]}} transition={{duration:1,delay:0.4,repeat:Infinity}} className="w-1.5 h-1.5 bg-mystic-gold rounded-full" />
+                               </div>
+                             )}
                            </div>
                            
                            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4 mb-4">
@@ -736,8 +763,17 @@ const SpreadSelector = () => {
                                </div>
                              ) : (
                                chatHistory.map((msg, idx) => (
-                                 <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                   <div className={`p-4 rounded-2xl max-w-[90%] ${msg.role === 'user' ? 'bg-mystic-gold/10 border-mystic-gold/30 border rounded-tr-sm text-mystic-gold' : 'bg-mystic-dark/60 border-mystic-gold/10 border rounded-tl-sm text-gray-300'}`}>
+                                 <motion.div 
+                                   key={idx} 
+                                   initial={{ opacity: 0, x: msg.role === 'user' ? 20 : -20 }}
+                                   animate={{ opacity: 1, x: 0 }}
+                                   className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+                                 >
+                                   <div className={`p-4 rounded-[1.5rem] max-w-[90%] shadow-xl ${
+                                     msg.role === 'user' 
+                                       ? 'bg-gradient-to-br from-mystic-gold/20 to-mystic-gold/5 border-mystic-gold/30 border rounded-tr-none text-mystic-gold' 
+                                       : 'bg-mystic-dark/40 border-white/5 border rounded-tl-none text-gray-200'
+                                   }`}>
                                      <div className="prose prose-invert max-w-none text-sm font-light leading-relaxed whitespace-pre-wrap">
                                        {msg.text.replace(/\*\*/g, '')}
                                        {msg.role === 'ai' && idx === chatHistory.length - 1 && aiStatus === 'streaming' && (
@@ -750,17 +786,17 @@ const SpreadSelector = () => {
                                        )}
                                      </div>
                                    </div>
-                                 </div>
+                                 </motion.div>
                                ))
                              )}
                            </div>
 
                            {chatHistory.length > 0 && (
                              <div className="shrink-0 mt-2">
-                               <div className="relative">
+                               <div className="relative group">
                                  <input
                                    type="text"
-                                   placeholder="Hỏi thêm Bậc thầy Tarot..."
+                                   placeholder="Hỏi về những thông điệp này..."
                                    value={chatInput}
                                    onChange={e => setChatInput(e.target.value)}
                                    onKeyDown={e => {
@@ -769,14 +805,14 @@ const SpreadSelector = () => {
                                      }
                                    }}
                                    disabled={aiStatus === 'streaming'}
-                                   className="w-full pl-4 pr-12 py-3 bg-mystic-dark/80 border border-mystic-gold/20 rounded-xl text-mystic-gold placeholder:text-mystic-gold/30 focus:outline-none focus:border-mystic-gold transition-colors text-sm font-light"
+                                   className="w-full pl-4 pr-12 py-4 bg-mystic-dark/60 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:border-mystic-gold/50 focus:bg-mystic-dark/80 transition-all text-sm font-light shadow-inner"
                                  />
                                  <button 
                                    onClick={() => { if (chatInput.trim()) handleRequestAIReading(chatInput); }}
                                    disabled={aiStatus === 'streaming' || !chatInput.trim()}
-                                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-mystic-gold/60 hover:text-mystic-gold disabled:opacity-50"
+                                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2.5 text-mystic-gold/40 hover:text-mystic-gold disabled:opacity-30 transition-colors"
                                  >
-                                   <Sparkles size={16} />
+                                   <Sparkles size={18} />
                                  </button>
                                </div>
                              </div>
@@ -787,16 +823,11 @@ const SpreadSelector = () => {
                                Status: {aiStatus === 'streaming' ? 'THINKING...' : aiStatus === 'idle' && chatHistory.length > 0 ? 'READY' : 'WAITING'}
                              </span>
                              <div className="flex gap-2 items-center">
-                               {aiStatus === 'idle' && chatHistory.length > 0 && isAuthenticated && (
-                                 <button
-                                   onClick={handleSaveReading}
-                                   className="flex items-center gap-1 px-3 py-1 bg-mystic-gold/20 hover:bg-mystic-gold/30 rounded text-[10px] font-bold uppercase tracking-wider text-mystic-gold transition-colors border border-mystic-gold/30"
-                                 >
-                                   <Save size={12} /> Lưu Trải Bài
-                                 </button>
-                               )}
-                               {!isAuthenticated && aiStatus === 'idle' && chatHistory.length > 0 && (
-                                 <span className="text-[10px] text-mystic-gold/40 uppercase tracking-wider">Đăng nhập để lưu</span>
+                               {aiStatus === 'idle' && chatHistory.length > 0 && (
+                                 <span className="text-[10px] text-mystic-gold/60 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                   <div className="w-1.5 h-1.5 rounded-full bg-mystic-gold animate-pulse" />
+                                   Đã tự động lưu
+                                 </span>
                                )}
                              </div>
                            </div>
