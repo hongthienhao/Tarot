@@ -228,9 +228,9 @@ const SpreadSelector = () => {
   const [revealedCardIds, setRevealedCardIds] = useState(new Set());
   const [targetQuantity, setTargetQuantity] = useState(0);
   const [selectedFanIndices, setSelectedFanIndices] = useState(new Set());
+  const [isHoveringFan, setIsHoveringFan] = useState(false);
 
   // Refs for scroll targets
-  const drawnTrayRef = useRef(null);
   const sectionRef = useRef(null);
 
   const cardRows = useMemo(() => {
@@ -308,17 +308,14 @@ const SpreadSelector = () => {
     setDrawnCards(prev => [...prev, nextCard]);
     setAvailableCards(newAvailable);
     
-    // Always scroll tray into view so user can see the newly picked card
-    requestAnimationFrame(() => {
-      drawnTrayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-
     if (newAvailable.length === 0) {
-      // Give scroll time to settle (300ms), then wait for gold-exit animation (700ms)
+      // Wait for gold-exit animation (800ms) before transitioning
       setTimeout(() => {
-        sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 300);
-      setTimeout(() => setMode('reading'), 1100);
+        setMode('reading');
+        setTimeout(() => {
+          window.scrollTo({ top: document.getElementById('spreads').offsetTop - 100, behavior: 'smooth' });
+        }, 50);
+      }, 800);
     }
   };
 
@@ -572,76 +569,62 @@ const SpreadSelector = () => {
               exit={{ opacity: 0 }}
               className="w-full text-center"
             >
+              {/* Mini Tray Indicator */}
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="fixed top-20 left-3 md:top-24 md:left-6 z-40 bg-mystic-dark/80 backdrop-blur-md p-3 md:p-4 rounded-2xl border border-mystic-gold/20 flex flex-col items-start gap-3 shadow-2xl"
+              >
+                <div className="text-[10px] md:text-xs text-mystic-gold/60 uppercase tracking-[0.2em] font-bold flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-mystic-gold animate-pulse" />
+                  Khay Bài ({drawnCards.length}/{targetQuantity})
+                </div>
+                {/* 5 items per row: 
+                    Mobile: w-8 (32px) * 5 + gap-1.5 (6px) * 4 = 184px 
+                    Desktop: w-10 (40px) * 5 + gap-2 (8px) * 4 = 232px */}
+                <div className="flex flex-wrap gap-1.5 md:gap-2 max-w-[184px] md:max-w-[232px]">
+                  {Array.from({ length: targetQuantity }).map((_, i) => (
+                    <motion.div 
+                      key={i}
+                      className={`w-8 md:w-10 aspect-[1/1.75] rounded border transition-all ${i < drawnCards.length ? 'border-mystic-gold shadow-[0_0_10px_rgba(212,175,55,0.4)]' : 'border-mystic-gold/20 bg-mystic-dark/50'}`}
+                      animate={i === drawnCards.length - 1 ? { scale: [1, 1.15, 1] } : {}}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {i < drawnCards.length && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full h-full p-[1px]">
+                           <img src="/assets/cards/card_back.jpeg" className="w-full h-full object-cover rounded-[2px] opacity-90" alt="" />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+
               <div className="mb-12">
                 <h2 className="text-4xl font-serif gold-text mb-4">Hãy Tập Trung...</h2>
                 <p className="text-gray-400 italic font-light">
                   Hãy hít thở sâu, tập trung vào câu hỏi của bạn và chọn {targetQuantity} lá bài mà bạn cảm thấy kết nối nhất.
                 </p>
-                <motion.div
-                  key={drawnCards.length}
-                  initial={{ scale: 1.35, backgroundColor: 'rgba(212,175,55,0.25)' }}
-                  animate={{ scale: 1, backgroundColor: 'rgba(212,175,55,0.08)' }}
-                  transition={{ duration: 0.6, type: 'spring' }}
-                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 border border-mystic-gold/20 rounded-full text-mystic-gold text-xs font-bold uppercase tracking-widest"
-                >
-                  Đã chọn: {drawnCards.length} / {targetQuantity}
-                </motion.div>
               </div>
 
-              <CardFan 
-                count={78} 
-                onSelect={handleSelectFromFan} 
-                isDrawing={drawnCards.length >= targetQuantity}
-                selectedIndices={selectedFanIndices}
-              />
-
-              {/* Bottom list of drawn cards - Phase 2 enhanced */}
-              <div
-                ref={drawnTrayRef}
-                id="drawn-tray"
-                className="mt-12 scroll-mt-24 flex flex-col items-center gap-6"
+              <div 
+                className={`relative pointer-events-auto transition-all duration-300 ${isHoveringFan ? 'z-[110]' : 'z-30'}`}
+                onMouseEnter={() => setIsHoveringFan(true)}
+                onMouseLeave={() => setIsHoveringFan(false)}
+                onTouchStart={() => setIsHoveringFan(true)}
+                onTouchEnd={() => setIsHoveringFan(false)}
               >
-                {/* Tray label */}
-                {drawnCards.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3"
-                  >
-                    <div className="h-px w-12 bg-mystic-gold/30" />
-                    <span className="text-mystic-gold/50 uppercase tracking-[0.3em] text-[10px] font-bold">
-                      Khay bài — {drawnCards.length} / {targetQuantity}
-                    </span>
-                    <div className="h-px w-12 bg-mystic-gold/30" />
-                  </motion.div>
-                )}
-
-                <div className="flex justify-center gap-4 flex-wrap">
-                  <AnimatePresence>
-                    {drawnCards.map((_, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 80, scale: 0.4, rotateY: 90 }}
-                        animate={{ opacity: 1, y: 0, scale: 1, rotateY: 0 }}
-                        transition={{ type: 'spring', stiffness: 280, damping: 22 }}
-                        className={`w-24 md:w-40 aspect-[1/1.7] rounded-lg overflow-hidden shadow-lg relative border border-mystic-gold/30 ${
-                          i === drawnCards.length - 1 ? 'slot-glow-enter' : ''
-                        }`}
-                      >
-                        {i === drawnCards.length - 1 && (
-                          <motion.div
-                            className="absolute inset-0 bg-mystic-gold/30 z-10 pointer-events-none rounded-lg"
-                            initial={{ opacity: 1 }}
-                            animate={{ opacity: 0 }}
-                            transition={{ duration: 1.2 }}
-                          />
-                        )}
-                        <img src="/assets/cards/card_back.jpeg" className="w-full h-full object-cover" alt="Selected" />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
+                <CardFan 
+                  count={78} 
+                  onSelect={handleSelectFromFan} 
+                  isDrawing={drawnCards.length >= targetQuantity}
+                  selectedIndices={selectedFanIndices}
+                  drawnCount={drawnCards.length}
+                  targetQuantity={targetQuantity}
+                />
               </div>
+
             </motion.div>
           ) : (
             <motion.div 

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, useSpring, AnimatePresence } from 'framer-motion';
 
-const CardFan = ({ count = 78, onSelect, isDrawing, selectedIndices = new Set() }) => {
+const CardFan = ({ count = 78, onSelect, isDrawing, selectedIndices = new Set(), drawnCount = 0, targetQuantity = 0 }) => {
   const containerRef = useRef(null);
   const [activeLayerIndex, setActiveLayerIndex] = useState(null);
   const [hoveredCardIndex, setHoveredCardIndex] = useState(null);
@@ -152,6 +152,20 @@ const CardFan = ({ count = 78, onSelect, isDrawing, selectedIndices = new Set() 
       onTouchMove={handleTouch}
       onTouchEnd={handleTouchEnd}
     >
+      {targetQuantity > 0 && (
+        <motion.div
+          key={drawnCount}
+          initial={{ scale: 1.2, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="absolute bottom-4 md:bottom-8 left-1/2 -translate-x-1/2 z-[2000] pointer-events-none"
+        >
+          <div className="px-5 py-2 rounded-full bg-mystic-dark/90 border border-mystic-gold/40 text-mystic-gold text-[10px] md:text-xs font-bold uppercase tracking-widest shadow-[0_0_15px_rgba(212,175,55,0.3)] backdrop-blur-md whitespace-nowrap">
+            Đã chọn: {drawnCount} / {targetQuantity}
+          </div>
+        </motion.div>
+      )}
+
       <motion.div 
         style={{ scale, transformOrigin: 'top center' }}
         className="relative w-full flex flex-col items-center justify-start overflow-visible"
