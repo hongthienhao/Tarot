@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Activity, ChevronLeft, Info, RefreshCw, BookOpen, Hash, BrainCircuit, Star } from 'lucide-react';
+import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Activity, ChevronLeft, RefreshCw, BookOpen, Hash, BrainCircuit, Star, Shuffle } from 'lucide-react';
 import apiClient from '../api/client';
 import TarotCard from './TarotCard';
 import CardFan from './CardFan';
@@ -78,18 +78,153 @@ const spreads = [
   },
 ];
 
+// ── Shuffle effect data (pre-computed at module level, no Math.random in render) ──
+const RIFFLE_CARDS = Array.from({ length: 20 }, (_, i) => {
+  const isLeft = i < 10, idx = i % 10;
+  return { id: i, isLeft, stackX: isLeft ? idx*0.4-2 : idx*-0.4+2, stackY: idx*-0.8,
+    stackRot: isLeft ? -1+idx*0.1 : 1-idx*0.1, cascadeDelay: 0.35+idx*0.032+(isLeft?0:0.016) };
+});
+const FAN_CARDS = Array.from({ length: 12 }, (_, i) => {
+  const a = (i/12)*2*Math.PI;
+  return { id: i, tx: Math.cos(a)*135, ty: Math.sin(a)*135, rot: (i/12)*360, delay: i*0.06 };
+});
+const OVERHAND_CARDS = Array.from({ length: 18 }, (_, i) => ({
+  id: i, delay: i*0.065, stackY: -i*0.7, stackX: i*0.25-2,
+}));
+const VORTEX_CARDS = Array.from({ length: 16 }, (_, i) => {
+  const a = (i/16)*2*Math.PI, r = 55+i*9;
+  return { id: i, tx: Math.cos(a)*r, ty: Math.sin(a)*r, rot: 360+i*50, delay: i*0.05 };
+});
+const EFFECTS = ['riffle','fan','overhand','vortex'];
+const CC = 'absolute w-32 h-52 rounded-xl overflow-hidden border border-mystic-gold/40 shadow-2xl';
+const CS = { left:0, top:0 };
+const CardImg = () => (<><img src="/assets/cards/card_back.jpeg" className="w-full h-full object-cover" alt="" /><div className="absolute inset-0 bg-gradient-to-b from-mystic-gold/5 to-mystic-dark/20" /></>);
+const Sparkle = () => (
+  <motion.div className="absolute inset-[-24px] rounded-full pointer-events-none" style={{filter:'blur(14px)'}}
+    animate={{backgroundColor:['rgba(212,175,55,0)','rgba(212,175,55,0.3)','rgba(212,175,55,0)']}}
+    transition={{duration:0.35,delay:1.08,ease:'easeOut'}} />
+);
+
+const RiffleEffect = () => (
+  <div className="relative pointer-events-none" style={{width:128,height:208}}>
+    {RIFFLE_CARDS.map(c => (
+      <motion.div key={c.id} className={CC} style={CS}
+        initial={{x:c.stackX,y:c.stackY,rotate:c.stackRot,zIndex:c.isLeft?c.id:20-c.id}}
+        animate={{
+          x:[c.stackX,c.isLeft?-105+c.stackX:105+c.stackX,c.isLeft?-105+c.stackX:105+c.stackX,c.stackX*0.3,0],
+          y:[c.stackY,c.stackY-8,c.stackY-8,c.stackY*0.5,0],
+          rotate:[c.stackRot,c.isLeft?c.stackRot-8:c.stackRot+8,c.isLeft?c.stackRot-8:c.stackRot+8,c.stackRot*0.4,0],
+          zIndex:[c.isLeft?c.id:20-c.id,c.isLeft?c.id:20-c.id,c.id*2,c.id*2,c.id],
+        }}
+        transition={{duration:1.4,delay:c.cascadeDelay,times:[0,0.22,0.5,0.75,1],ease:[0.25,0.1,0.25,1],zIndex:{duration:0,delay:c.cascadeDelay+0.7}}}
+      ><CardImg /></motion.div>
+    ))}
+    <Sparkle />
+  </div>
+);
+
+const FanEffect = () => (
+  <div className="relative pointer-events-none" style={{width:128,height:208}}>
+    {FAN_CARDS.map(c => (
+      <motion.div key={c.id} className={CC} style={CS}
+        initial={{x:0,y:0,rotate:0,opacity:0.9,scale:1,zIndex:c.id}}
+        animate={{
+          x:[0,c.tx,c.tx*0.4,0], y:[0,c.ty,c.ty*0.4,0],
+          rotate:[0,c.rot,c.rot+180,720], opacity:[0.9,1,0.8,0], scale:[1,0.7,0.9,2],
+        }}
+        transition={{duration:1.45,delay:c.delay,times:[0,0.35,0.65,1],ease:'easeInOut'}}
+      ><CardImg /></motion.div>
+    ))}
+    <Sparkle />
+  </div>
+);
+
+const OverhandEffect = () => (
+  <div className="relative pointer-events-none" style={{width:128,height:208}}>
+    {OVERHAND_CARDS.map(c => (
+      <motion.div key={c.id} className={CC} style={CS}
+        initial={{x:c.stackX,y:c.stackY,rotate:0,opacity:0.9,zIndex:18-c.id}}
+        animate={{
+          x:[c.stackX,c.stackX,110+c.id*0.7,0],
+          y:[c.stackY,c.stackY-70,-c.id*0.5,0],
+          rotate:[0,-10,6,0], opacity:[0.9,1,1,0.9],
+          zIndex:[18-c.id,18-c.id,c.id+20,c.id],
+        }}
+        transition={{duration:1.4,delay:c.delay,times:[0,0.28,0.65,1],ease:[0.25,0.46,0.45,0.94],zIndex:{duration:0,delay:c.delay+0.38}}}
+      ><CardImg /></motion.div>
+    ))}
+    <Sparkle />
+  </div>
+);
+
+const VortexEffect = () => (
+  <div className="relative pointer-events-none" style={{width:128,height:208}}>
+    {VORTEX_CARDS.map(c => (
+      <motion.div key={c.id} className={CC} style={CS}
+        initial={{x:0,y:0,rotate:0,opacity:0.9,scale:1,zIndex:c.id}}
+        animate={{
+          x:[0,c.tx*0.5,c.tx,c.tx*0.2,0], y:[0,c.ty*0.5,c.ty,c.ty*0.2,0],
+          rotate:[0,c.rot*0.4,c.rot,c.rot*1.6,c.rot*2.2],
+          opacity:[0.9,1,0.85,0.4,0], scale:[1,1.1,0.8,0.5,1.8],
+        }}
+        transition={{duration:1.45,delay:c.delay,times:[0,0.25,0.5,0.75,1],ease:[0.25,0.1,0.25,1]}}
+      ><CardImg /></motion.div>
+    ))}
+    <Sparkle />
+  </div>
+);
+
+const DealingOverlay = ({ visible }) => {
+  const effectRef = useRef(null);
+  if (visible && !effectRef.current) effectRef.current = EFFECTS[Math.floor(Math.random()*EFFECTS.length)];
+  if (!visible) effectRef.current = null;
+  const eff = effectRef.current;
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0,transition:{duration:0.4}}}
+          transition={{duration:0.25}}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-mystic-dark/95 backdrop-blur-md"
+          style={{cursor:'none',userSelect:'none'}}
+          onPointerDown={e=>{e.stopPropagation();e.preventDefault();}}
+          onPointerMove={e=>{e.stopPropagation();e.preventDefault();}}
+          onClick={e=>{e.stopPropagation();e.preventDefault();}}
+        >
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <motion.div animate={{scale:[1,1.35,1],opacity:[0.15,0.45,0.15]}} transition={{duration:1.5,repeat:Infinity,ease:'easeInOut'}}
+              className="w-80 h-80 bg-mystic-gold/20 rounded-full blur-[100px]" />
+          </div>
+          {eff==='riffle'   && <RiffleEffect />}
+          {eff==='fan'      && <FanEffect />}
+          {eff==='overhand' && <OverhandEffect />}
+          {eff==='vortex'   && <VortexEffect />}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+
 const SpreadSelector = () => {
   const [viewMode, setViewMode] = useState('grid');
-  const [mode, setMode] = useState('select'); // 'select', 'drawing', 'reading'
+  const [mode, setMode] = useState('select'); // 'select', 'confirm', 'drawing', 'reading'
   const [isFetching, setIsFetching] = useState(false);
   const [readingResult, setReadingResult] = useState(null);
   const [activeCard, setActiveCard] = useState(null);
-  
-  // New states for the drawing flow
+  const [pendingSpread, setPendingSpread] = useState(null);
+  const [isShuffling, setIsShuffling] = useState(false);
+
+  // Drawing flow states
   const [availableCards, setAvailableCards] = useState([]);
   const [drawnCards, setDrawnCards] = useState([]);
   const [revealedCardIds, setRevealedCardIds] = useState(new Set());
   const [targetQuantity, setTargetQuantity] = useState(0);
+  const [selectedFanIndices, setSelectedFanIndices] = useState(new Set());
+
+  // Refs for scroll targets
+  const drawnTrayRef = useRef(null);
+  const sectionRef = useRef(null);
 
   const cardRows = useMemo(() => {
     if (drawnCards.length === 0) return [];
@@ -107,17 +242,44 @@ const SpreadSelector = () => {
     return [drawnCards.slice(0, third), drawnCards.slice(third, third * 2), drawnCards.slice(third * 2)];
   }, [drawnCards]);
 
+  const handleSelectSpread = (spread) => {
+    setPendingSpread(spread);
+    setMode('confirm');
+  };
+
+  const handleConfirmShuffle = async () => {
+    setIsShuffling(true);
+    document.body.classList.add('cursor-dealing');
+    try {
+      const [response] = await Promise.all([
+        apiClient.post('/cards/draw', { quantity: pendingSpread.quantity }),
+        new Promise(r => setTimeout(r, 1500)),
+      ]);
+      setTargetQuantity(pendingSpread.quantity);
+      setDrawnCards([]);
+      setRevealedCardIds(new Set());
+      setAvailableCards(response.data.data.cards);
+      setReadingResult(response.data.data);
+      setMode('drawing');
+      window.scrollTo({ top: document.getElementById('spreads').offsetTop - 100, behavior: 'smooth' });
+    } catch (error) {
+      console.error('Error fetching cards:', error);
+      alert('Có lỗi xảy ra. Vui lòng kiểm tra backend.');
+    } finally {
+      document.body.classList.remove('cursor-dealing');
+      setIsShuffling(false);
+    }
+  };
+
   const handleStartDraw = async (quantity) => {
     try {
       setIsFetching(true);
       setTargetQuantity(quantity);
       setDrawnCards([]);
       setRevealedCardIds(new Set());
-      
       const response = await apiClient.post('/cards/draw', { quantity });
       setAvailableCards(response.data.data.cards);
       setReadingResult(response.data.data);
-      
       setMode('drawing');
       window.scrollTo({ top: document.getElementById('spreads').offsetTop - 100, behavior: 'smooth' });
       setIsFetching(false);
@@ -134,11 +296,22 @@ const SpreadSelector = () => {
     const nextCard = availableCards[0];
     const newAvailable = availableCards.slice(1);
     
-    setDrawnCards([...drawnCards, nextCard]);
+    // Phase 3: track which fan position was selected so FanCard can animate exit
+    setSelectedFanIndices(prev => new Set([...prev, index]));
+    setDrawnCards(prev => [...prev, nextCard]);
     setAvailableCards(newAvailable);
     
+    // Always scroll tray into view so user can see the newly picked card
+    requestAnimationFrame(() => {
+      drawnTrayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
     if (newAvailable.length === 0) {
-      setTimeout(() => setMode('reading'), 800);
+      // Give scroll time to settle (300ms), then wait for gold-exit animation (700ms)
+      setTimeout(() => {
+        sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
+      setTimeout(() => setMode('reading'), 1100);
     }
   };
 
@@ -156,10 +329,12 @@ const SpreadSelector = () => {
     setDrawnCards([]);
     setAvailableCards([]);
     setRevealedCardIds(new Set());
+    setPendingSpread(null);
+    setSelectedFanIndices(new Set());
   };
 
   return (
-    <section id="spreads" className="py-32 px-6 relative min-h-screen">
+    <section id="spreads" ref={sectionRef} className="py-32 px-6 relative min-h-screen">
       <div className="max-w-7xl mx-auto">
         <AnimatePresence mode="wait">
           {mode === 'select' ? (
@@ -210,7 +385,7 @@ const SpreadSelector = () => {
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: spread.delay }}
-                    onClick={() => handleStartDraw(spread.quantity)}
+                    onClick={() => handleSelectSpread(spread)}
                     className={`group cursor-pointer glass p-8 rounded-[2rem] relative overflow-hidden transition-all duration-500 hover:border-mystic-gold/50 ${viewMode === 'list' ? 'flex items-center gap-10' : ''}`}
                   >
                      <div className={`mb-6 p-4 bg-mystic-dark/50 rounded-2xl w-fit text-mystic-gold ${viewMode === 'list' ? 'mb-0 scale-110' : ''}`}>{spread.icon}</div>
@@ -227,8 +402,45 @@ const SpreadSelector = () => {
                 ))}
               </div>
             </motion.div>
+          ) : mode === 'confirm' ? (
+            <motion.div
+              key="confirm"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.5 }}
+              className="w-full flex flex-col items-center justify-center min-h-[60vh] gap-10"
+            >
+              <div className="w-full">
+                <button onClick={() => setMode('select')} className="flex items-center gap-2 text-mystic-gold/60 hover:text-mystic-gold transition-colors uppercase tracking-widest text-xs font-bold">
+                  <ChevronLeft size={16} /> Thay đổi
+                </button>
+              </div>
+              <motion.div className="p-6 bg-mystic-gold/10 rounded-3xl text-mystic-gold border border-mystic-gold/20"
+                animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 3, repeat: Infinity }}
+              >
+                {pendingSpread?.icon}
+              </motion.div>
+              <div className="text-center">
+                <p className="text-mystic-gold/60 uppercase tracking-[0.4em] text-[10px] mb-2">{pendingSpread?.tagline}</p>
+                <h2 className="text-4xl md:text-5xl font-serif gold-text mb-4">{pendingSpread?.name}</h2>
+                <p className="text-gray-400 font-light max-w-md mx-auto">{pendingSpread?.description}</p>
+              </div>
+              <motion.button
+                onClick={handleConfirmShuffle}
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
+                className="btn-shuffle relative flex items-center gap-3 px-14 py-5 text-mystic-dark font-serif text-xl font-bold tracking-widest uppercase rounded-2xl overflow-hidden"
+                style={{ background: 'linear-gradient(135deg, #bf953f 0%, #fcf6ba 50%, #b38728 100%)' }}
+              >
+                <motion.div className="absolute inset-0 bg-white/20" animate={{ opacity: [0, 0.4, 0] }} transition={{ duration: 2, repeat: Infinity }} />
+                <Shuffle size={22} />
+                <span className="relative">Xào Bài</span>
+              </motion.button>
+              <p className="text-mystic-gold/30 text-xs italic tracking-widest">Hãy tập trung vào câu hỏi của bạn trước khi xào bài</p>
+            </motion.div>
           ) : mode === 'drawing' ? (
-            <motion.div 
+            <motion.div
               key="drawing"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -240,31 +452,70 @@ const SpreadSelector = () => {
                 <p className="text-gray-400 italic font-light">
                   Hãy hít thở sâu, tập trung vào câu hỏi của bạn và chọn {targetQuantity} lá bài mà bạn cảm thấy kết nối nhất.
                 </p>
-                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-mystic-gold/10 border border-mystic-gold/20 rounded-full text-mystic-gold text-xs font-bold uppercase tracking-widest">
+                <motion.div
+                  key={drawnCards.length}
+                  initial={{ scale: 1.35, backgroundColor: 'rgba(212,175,55,0.25)' }}
+                  animate={{ scale: 1, backgroundColor: 'rgba(212,175,55,0.08)' }}
+                  transition={{ duration: 0.6, type: 'spring' }}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 border border-mystic-gold/20 rounded-full text-mystic-gold text-xs font-bold uppercase tracking-widest"
+                >
                   Đã chọn: {drawnCards.length} / {targetQuantity}
-                </div>
+                </motion.div>
               </div>
 
               <CardFan 
                 count={78} 
                 onSelect={handleSelectFromFan} 
                 isDrawing={drawnCards.length >= targetQuantity}
+                selectedIndices={selectedFanIndices}
               />
 
-              {/* Bottom list of drawn cards (face down) */}
-              <div className="mt-20 flex justify-center gap-4 flex-wrap">
-                <AnimatePresence>
-                  {drawnCards.map((_, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 50, scale: 0.5 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      className="w-24 md:w-40 aspect-[1/1.7] rounded-lg border border-mystic-gold/30 overflow-hidden shadow-lg"
-                    >
-                      <img src="/assets/cards/card_back.jpeg" className="w-full h-full object-cover" alt="Selected" />
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+              {/* Bottom list of drawn cards - Phase 2 enhanced */}
+              <div
+                ref={drawnTrayRef}
+                id="drawn-tray"
+                className="mt-12 scroll-mt-24 flex flex-col items-center gap-6"
+              >
+                {/* Tray label */}
+                {drawnCards.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3"
+                  >
+                    <div className="h-px w-12 bg-mystic-gold/30" />
+                    <span className="text-mystic-gold/50 uppercase tracking-[0.3em] text-[10px] font-bold">
+                      Khay bài — {drawnCards.length} / {targetQuantity}
+                    </span>
+                    <div className="h-px w-12 bg-mystic-gold/30" />
+                  </motion.div>
+                )}
+
+                <div className="flex justify-center gap-4 flex-wrap">
+                  <AnimatePresence>
+                    {drawnCards.map((_, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 80, scale: 0.4, rotateY: 90 }}
+                        animate={{ opacity: 1, y: 0, scale: 1, rotateY: 0 }}
+                        transition={{ type: 'spring', stiffness: 280, damping: 22 }}
+                        className={`w-24 md:w-40 aspect-[1/1.7] rounded-lg overflow-hidden shadow-lg relative border border-mystic-gold/30 ${
+                          i === drawnCards.length - 1 ? 'slot-glow-enter' : ''
+                        }`}
+                      >
+                        {i === drawnCards.length - 1 && (
+                          <motion.div
+                            className="absolute inset-0 bg-mystic-gold/30 z-10 pointer-events-none rounded-lg"
+                            initial={{ opacity: 1 }}
+                            animate={{ opacity: 0 }}
+                            transition={{ duration: 1.2 }}
+                          />
+                        )}
+                        <img src="/assets/cards/card_back.jpeg" className="w-full h-full object-cover" alt="Selected" />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
               </div>
             </motion.div>
           ) : (
@@ -384,7 +635,10 @@ const SpreadSelector = () => {
         </AnimatePresence>
       </div>
       
-      {/* Loading Overlay */}
+      {/* Dealing Animation Overlay */}
+      <DealingOverlay visible={isShuffling} />
+
+      {/* Loading Overlay (for refresh) */}
       <AnimatePresence>
         {isFetching && (
           <motion.div 

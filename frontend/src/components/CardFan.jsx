@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, useSpring } from 'framer-motion';
+import { motion, useSpring, AnimatePresence } from 'framer-motion';
 
-const CardFan = ({ count = 78, onSelect, isDrawing }) => {
+const CardFan = ({ count = 78, onSelect, isDrawing, selectedIndices = new Set() }) => {
   const containerRef = useRef(null);
   const [activeLayerIndex, setActiveLayerIndex] = useState(null);
   const [hoveredCardIndex, setHoveredCardIndex] = useState(null);
@@ -21,6 +21,10 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
   
   const estimatedWidth = (fanRadius * Math.sin((fanArcAngle/2) * Math.PI / 180) * 2) + cardWidth;
   const scale = Math.min(1.0, (windowWidth - 40) / estimatedWidth);
+
+  // Compute the real visual height after applying CSS scale
+  const BASE_HEIGHT = isMobile ? 700 : 1050;
+  const containerHeight = Math.round(BASE_HEIGHT * scale);
 
   const layers = [
     { id: 0, start: 0, end: 25, yOffset: isMobile ? -210 : -280 },
@@ -136,7 +140,8 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
 
   return (
     <div 
-      className="relative w-full h-[700px] md:h-[1050px] flex flex-col items-center justify-center overflow-visible select-none touch-none"
+      className="relative w-full flex flex-col items-center justify-center overflow-visible select-none touch-none"
+      style={{ height: containerHeight }}
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => {
@@ -148,8 +153,10 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
       onTouchEnd={handleTouchEnd}
     >
       <motion.div 
-        style={{ scale }}
-        className="relative w-full h-full flex flex-col items-center justify-center overflow-visible"
+        style={{ scale, transformOrigin: 'top center' }}
+        className="relative w-full flex flex-col items-center justify-start overflow-visible"
+        animate={{ scale }}
+        transition={{ type: 'spring', stiffness: 200, damping: 30 }}
       >
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-[800px] h-[800px] bg-mystic-purple/10 blur-[150px] rounded-full" />
@@ -181,7 +188,6 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
                   layerIndex={layer.id}
                   activeLayerIndex={activeLayerIndex}
                   isActiveLayer={layer.id === activeLayerIndex}
-                  // Enforce reset: if no layer is active, no card should be hovered
                   hoveredCardIndex={activeLayerIndex === null ? null : hoveredCardIndex}
                   x={x}
                   y={y}
@@ -190,6 +196,7 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
                   isDrawing={isDrawing}
                   width={cardWidth}
                   isMobile={isMobile}
+                  isSelected={selectedIndices.has(cardIndex)}
                 />
               );
             })}
@@ -200,7 +207,7 @@ const CardFan = ({ count = 78, onSelect, isDrawing }) => {
   );
 };
 
-const FanCard = ({ index, layerIndex, activeLayerIndex, isActiveLayer, hoveredCardIndex, x, y, rotation, onSelect, isDrawing, width, isMobile }) => {
+const FanCard = ({ index, layerIndex, activeLayerIndex, isActiveLayer, hoveredCardIndex, x, y, rotation, onSelect, isDrawing, width, isMobile, isSelected }) => {
   const isHovered = hoveredCardIndex === index;
   const isNeighbor = hoveredCardIndex !== null && Math.abs(hoveredCardIndex - index) <= 2 && Math.floor(hoveredCardIndex / 26) === Math.floor(index / 26);
   
@@ -217,10 +224,33 @@ const FanCard = ({ index, layerIndex, activeLayerIndex, isActiveLayer, hoveredCa
   const scale = isHovered ? (isMobile ? 1.5 : 1.8) : (isNeighbor ? 0.85 : 1);
   const zIndex = isHovered ? 9000 : (layerIndex * 100 + index);
   
-  // Stays on the arc, no jumping out
   const displayY = y; 
   const displayX = x + pushX;
   const displayRotate = rotation + pushRotate;
+
+  // Phase 3: selected card exit animation — flash gold → scale up → vanish
+  if (isSelected) {
+    return (
+      <motion.div
+        initial={{ opacity: 1, scale: scale, x: displayX, y: displayY, rotate: displayRotate }}
+        animate={{ opacity: 0, scale: 2.5, x: displayX, y: displayY, rotate: displayRotate }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        style={{ width, transformOrigin: 'center center', pointerEvents: 'none', zIndex: 9999 }}
+        className="absolute aspect-[1/1.7] touch-none"
+      >
+        <div className="w-full h-full rounded-xl md:rounded-2xl overflow-hidden relative bg-mystic-dark border border-mystic-gold shadow-[0_0_60px_rgba(212,175,55,0.8)]">
+          <img src="/assets/cards/card_back.jpeg" alt="" className="w-full h-full object-cover" />
+          {/* Gold flash overlay */}
+          <motion.div
+            className="absolute inset-0 bg-mystic-gold"
+            initial={{ opacity: 0.7 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.45 }}
+          />
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -238,7 +268,6 @@ const FanCard = ({ index, layerIndex, activeLayerIndex, isActiveLayer, hoveredCa
         type: "spring",
         ...springConfig,
         opacity: { duration: 0.2 },
-        // Ripple effect: start from middle layer (1) and middle card (12.5)
         delay: (Math.abs(layerIndex - 1) * 0.15) + (Math.abs((index % 26) - 12.5) * 0.025)
       }}
       style={{ 
