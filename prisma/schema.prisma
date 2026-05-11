@@ -37,12 +37,15 @@ model TarotCard {
 }
 
 model Reading {
-  id           String        @id @default(uuid())
-  userId       String
-  user         User          @relation(fields: [userId], references: [id])
-  createdAt    DateTime      @default(now())
-  notes        String?
-  readingCards ReadingCard[]
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id])
+  createdAt      DateTime      @default(now())
+  spreadName     String?
+  userQuestion   String?
+  interpretation String?       @db.Text
+  notes          String?
+  readingCards   ReadingCard[]
 }
 
 model ReadingCard {

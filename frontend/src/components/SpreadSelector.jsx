@@ -208,7 +208,7 @@ const DealingOverlay = ({ visible }) => {
 
 
 const SpreadSelector = () => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
   const [viewMode, setViewMode] = useState('grid');
   const [mode, setMode] = useState('select'); // 'select', 'confirm', 'drawing', 'reading'
   const [isFetching, setIsFetching] = useState(false);
@@ -381,7 +381,10 @@ const SpreadSelector = () => {
       const url = (apiClient.defaults.baseURL || 'http://localhost:3000/api/v1') + '/cards/ai-reading';
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
         body: JSON.stringify({ 
           cards: drawnCards, 
           spreadType: readingResult?.spreadName, 

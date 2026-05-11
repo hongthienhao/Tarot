@@ -1,5 +1,6 @@
 import express from 'express';
 import { drawCards, generateReading } from '../controllers/cardController.js';
+import { optionalProtect } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
@@ -53,6 +54,6 @@ router.post('/draw', drawCards);
  *       200:
  *         description: Server-Sent Events stream
  */
-router.post('/ai-reading', generateReading);
+router.post('/ai-reading', optionalProtect, generateReading);
 
 export default router;

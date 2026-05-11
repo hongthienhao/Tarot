@@ -102,11 +102,37 @@ export const generateReading = catchAsync(async (req, res, next) => {
       history || []
     );
 
+    let fullInterpretation = '';
     for await (const chunk of stream) {
       const chunkText = chunk.text();
       if (chunkText) {
+        fullInterpretation += chunkText;
         // Gửi data chunk về client theo chuẩn SSE
         res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+      }
+    }
+
+    // Tự động lưu vào Nhật ký linh hồn nếu đã đăng nhập
+    if (req.user) {
+      try {
+        await prisma.reading.create({
+          data: {
+            userId: req.user.id,
+            spreadName: spreadType || 'Trải bài Tarot',
+            userQuestion: message || 'Giải bài tổng quan',
+            interpretation: fullInterpretation,
+            readingCards: {
+              create: cards.map((card, index) => ({
+                cardId: card.id,
+                position: card.position || index + 1,
+                isReversed: card.isReversed || false,
+              })),
+            },
+          },
+        });
+      } catch (saveError) {
+        console.error('Lỗi khi tự động lưu trải bài:', saveError);
+        // Không chặn stream kết thúc nếu lỗi lưu DB
       }
     }
 

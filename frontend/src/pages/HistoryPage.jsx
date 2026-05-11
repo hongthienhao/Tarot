@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Loader, Clock, ChevronDown, ChevronUp, Bot, User } from 'lucide-react';
+import { 
+  Calendar, 
+  Loader, 
+  Clock, 
+  ChevronRight, 
+  Bot, 
+  User, 
+  Book, 
+  ScrollText, 
+  Sparkles, 
+  X,
+  Hash,
+  Star,
+  Quote
+} from 'lucide-react';
 import apiClient from '../api/client';
 import useAuthStore from '../store/useAuthStore';
-import TarotCard from '../components/TarotCard';
 
 const HistoryPage = () => {
   const [readings, setReadings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [expandedId, setExpandedId] = useState(null);
+  const [selectedReading, setSelectedReading] = useState(null);
 
   useEffect(() => {
     const fetchReadings = async () => {
@@ -18,7 +31,7 @@ const HistoryPage = () => {
         setReadings(response.data.data.readings);
         setIsLoading(false);
       } catch (err) {
-        setError('Không thể tải lịch sử trải bài. Vui lòng thử lại sau.');
+        setError('Không thể kết nối với thư viện linh hồn. Vui lòng thử lại sau.');
         setIsLoading(false);
       }
     };
@@ -37,154 +50,283 @@ const HistoryPage = () => {
     }).format(date);
   };
 
-  const toggleExpand = (id) => {
-    setExpandedId(expandedId === id ? null : id);
-  };
-
-  const parseNotes = (notes) => {
-    if (!notes) return [];
-    return notes.split('\n\n---\n\n').map(chunk => {
-      const isUser = chunk.startsWith('**Bạn**:');
-      let text = chunk.replace(/^\*\*(Bạn|Bậc thầy Tarot)\*\*:\s*/, '');
-      text = text.replace(/\*\*/g, ''); // Remove all ** markers
-      return { role: isUser ? 'user' : 'ai', text };
-    });
+  const getShortDate = (dateString) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('vi-VN', {
+      month: 'short',
+      day: 'numeric',
+    }).format(date);
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen pt-24 pb-12 flex items-center justify-center relative z-10">
-        <Loader className="w-12 h-12 text-mystic-gold animate-spin" />
+      <div className="min-h-screen pt-24 pb-12 flex flex-col items-center justify-center relative z-10">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          className="mb-6"
+        >
+          <Sparkles className="w-12 h-12 text-mystic-gold" />
+        </motion.div>
+        <p className="text-mystic-gold/60 font-serif tracking-widest animate-pulse">ĐANG MỞ CUỐN BIÊN NIÊN SỬ...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-12 px-4 relative z-10">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-playfair font-bold text-mystic-gold mb-4 drop-shadow-lg">
-            Cánh Cửa Định Danh
-          </h1>
-          <p className="text-lg text-gray-300 font-light">
-            Hành trình tâm linh và những lời giải đáp đã được lưu giữ
-          </p>
-        </div>
+    <div className="min-h-screen pt-24 pb-12 px-4 relative z-10 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Section */}
+        <header className="text-center mb-20 relative">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-mystic-gold/10 border border-mystic-gold/20 mb-6">
+              <Star className="w-4 h-4 text-mystic-gold" />
+              <span className="text-[10px] uppercase tracking-[0.3em] font-bold text-mystic-gold">Bibliotheca Fati</span>
+            </div>
+            <h1 className="text-5xl md:text-7xl font-serif font-bold gold-text mb-6 drop-shadow-2xl">
+              Chronicles of <span className="italic">Fate</span>
+            </h1>
+            <p className="text-lg md:text-xl text-gray-400 font-light max-w-2xl mx-auto leading-relaxed">
+              Mỗi trang sách là một dấu ấn của linh hồn, ghi lại những thông điệp mà vũ trụ đã gửi gắm đến bạn qua những lá bài.
+            </p>
+          </motion.div>
+          
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[200%] bg-mystic-purple/5 blur-[120px] rounded-full -z-10 pointer-events-none" />
+        </header>
 
         {error && (
-          <div className="bg-red-500/20 border border-red-500/50 text-red-200 p-4 rounded-xl mb-8 text-center">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-300 p-6 rounded-2xl mb-8 text-center glass">
             {error}
           </div>
         )}
 
         {!error && readings.length === 0 && (
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 p-12 rounded-2xl text-center">
-            <Clock className="w-16 h-16 text-white/20 mx-auto mb-4" />
-            <h3 className="text-2xl font-playfair text-white mb-2">Chưa có trải bài nào</h3>
-            <p className="text-gray-400">Bạn chưa thực hiện bất kỳ trải bài nào. Hãy quay lại trang chủ và trải nghiệm ngay!</p>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="glass border-white/5 p-20 rounded-[3rem] text-center max-w-3xl mx-auto"
+          >
+            <ScrollText className="w-20 h-20 text-white/10 mx-auto mb-8" />
+            <h3 className="text-3xl font-serif text-white mb-4">Trang Sách Trống</h3>
+            <p className="text-gray-400 font-light text-lg mb-10">Bạn chưa bắt đầu viết nên chương đầu tiên trong biên niên sử của mình.</p>
+            <button className="px-10 py-4 bg-mystic-gold rounded-full text-mystic-dark font-bold uppercase tracking-widest text-xs transition-transform hover:scale-105 active:scale-95">
+              Bắt đầu trải bài ngay
+            </button>
+          </motion.div>
         )}
 
-        <div className="space-y-6">
-          {readings.map((reading) => (
+        {/* Grid View of Readings */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {readings.map((reading, index) => (
             <motion.div
               key={reading.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
+              transition={{ delay: index * 0.05 }}
+              onClick={() => setSelectedReading(reading)}
+              className="group relative cursor-pointer"
             >
-              {/* Header */}
-              <div 
-                className="p-6 flex items-center justify-between cursor-pointer hover:bg-white/5 transition-colors"
-                onClick={() => toggleExpand(reading.id)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-mystic-purple/20 flex items-center justify-center border border-mystic-purple/50">
-                    <Calendar className="w-6 h-6 text-mystic-gold" />
+              <div className="absolute inset-0 bg-gradient-to-br from-mystic-gold/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem]" />
+              
+              <div className="glass p-8 rounded-[2rem] border-white/5 group-hover:border-mystic-gold/30 transition-all duration-500 h-full flex flex-col">
+                {/* Card Header: Date & Badge */}
+                <div className="flex justify-between items-start mb-10">
+                  <div className="w-12 h-12 rounded-2xl bg-mystic-dark/60 border border-white/10 flex flex-col items-center justify-center">
+                    <span className="text-[10px] text-mystic-gold/60 font-bold uppercase">{getShortDate(reading.createdAt).split(' ')[1]}</span>
+                    <span className="text-lg font-serif text-white leading-none">{getShortDate(reading.createdAt).split(' ')[0]}</span>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-playfair text-white font-medium">
-                      Trải bài {reading.readingCards.length} lá
-                    </h3>
-                    <p className="text-sm text-gray-400 flex items-center gap-2 mt-1">
-                      <Clock className="w-4 h-4" /> {formatDate(reading.createdAt)}
-                    </p>
+                  <div className="px-3 py-1 rounded-full bg-mystic-purple/10 border border-mystic-purple/20 text-[8px] font-bold uppercase tracking-widest text-mystic-gold/80">
+                    {reading.readingCards.length} Cards
                   </div>
                 </div>
-                <div>
-                  {expandedId === reading.id ? (
-                    <ChevronUp className="w-6 h-6 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-6 h-6 text-gray-400" />
+
+                {/* Card Content: Title & Icons */}
+                <h3 className="text-xl font-serif text-white mb-4 group-hover:text-mystic-gold transition-colors">
+                  {reading.spreadName || `Trải bài ${reading.readingCards.length} lá`}
+                </h3>
+                
+                {/* Visual Preview of cards */}
+                <div className="flex -space-x-4 mb-8">
+                  {reading.readingCards.slice(0, 5).map((rc, idx) => (
+                    <div 
+                      key={rc.id} 
+                      className="w-10 h-14 rounded-md border border-mystic-gold/20 overflow-hidden shadow-lg transform group-hover:-translate-y-2 transition-transform duration-300"
+                      style={{ transitionDelay: `${idx * 50}ms` }}
+                    >
+                      <img src={rc.card.imagePath} className="w-full h-full object-cover" alt="" />
+                    </div>
+                  ))}
+                  {reading.readingCards.length > 5 && (
+                    <div className="w-10 h-14 rounded-md bg-mystic-dark/80 border border-white/10 flex items-center justify-center text-[10px] text-mystic-gold">
+                      +{reading.readingCards.length - 5}
+                    </div>
                   )}
                 </div>
+
+                <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-medium tracking-wider">
+                      {new Date(reading.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-mystic-gold/40 group-hover:text-mystic-gold group-hover:translate-x-1 transition-all" />
+                </div>
               </div>
-
-              {/* Content */}
-              <AnimatePresence>
-                {expandedId === reading.id && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="border-t border-white/10"
-                  >
-                    <div className="p-6">
-                      {/* Cards Display */}
-                      <div className="mb-8">
-                        <h4 className="text-lg font-playfair text-mystic-gold mb-6 border-b border-white/10 pb-2">
-                          Các Lá Bài Đã Rút
-                        </h4>
-                        <div className="flex flex-wrap gap-6 justify-center">
-                          {reading.readingCards.map((rc, index) => (
-                            <div key={rc.id} className="flex flex-col items-center">
-                              <div className="w-32 aspect-[1/1.7] mb-3 rounded-2xl overflow-hidden border-2 border-mystic-gold/40 shadow-xl">
-                                <img 
-                                  src={rc.card.imagePath} 
-                                  alt={rc.card.name} 
-                                  className={`w-full h-full object-cover ${rc.isReversed ? 'rotate-180' : ''}`}
-                                />
-                              </div>
-                              <p className="text-sm text-center font-medium text-white max-w-[120px]">
-                                {rc.card.name} <br/>
-                                <span className="text-xs text-mystic-gold/60">{rc.isReversed ? '(Ngược)' : '(Xuôi)'}</span>
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* AI Story/Chat Display */}
-                      {reading.notes && (
-                        <div>
-                          <h4 className="text-lg font-playfair text-mystic-gold mb-6 border-b border-white/10 pb-2 flex items-center gap-2">
-                            <Bot className="w-5 h-5" /> Thông Điệp Từ Vũ Trụ
-                          </h4>
-                          <div className="bg-black/20 rounded-xl p-6 space-y-4">
-                            {parseNotes(reading.notes).map((msg, idx) => (
-                              <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                <div className={`p-4 rounded-2xl max-w-[90%] ${msg.role === 'user' ? 'bg-mystic-gold/10 border-mystic-gold/30 border rounded-tr-sm text-mystic-gold' : 'bg-mystic-dark/60 border-mystic-gold/10 border rounded-tl-sm text-gray-300'}`}>
-                                  <div className="text-[10px] font-bold mb-2 opacity-60 uppercase tracking-widest">
-                                    {msg.role === 'user' ? 'Bạn' : 'Bậc Thầy Tarot'}
-                                  </div>
-                                  <div className="text-sm font-light leading-relaxed whitespace-pre-wrap">
-                                    {msg.text}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </motion.div>
           ))}
         </div>
       </div>
+
+      {/* Full Reading Detail Modal */}
+      <AnimatePresence>
+        {selectedReading && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedReading(null)}
+              className="absolute inset-0 bg-mystic-dark/95 backdrop-blur-xl"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 50 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 50 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-6xl max-h-[90vh] bg-black/40 border border-white/10 rounded-[3rem] shadow-[0_50px_100px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col glass"
+            >
+              {/* Modal Close */}
+              <button 
+                onClick={() => setSelectedReading(null)}
+                className="absolute top-8 right-8 z-50 p-3 bg-white/5 hover:bg-white/10 rounded-full text-white/40 hover:text-white transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="overflow-y-auto custom-scrollbar flex-1">
+                <div className="p-8 md:p-16">
+                  {/* Modal Header */}
+                  <div className="text-center mb-20">
+                    <div className="flex items-center justify-center gap-4 text-mystic-gold/60 uppercase tracking-[0.4em] text-[10px] font-bold mb-6">
+                      <div className="h-px w-8 bg-mystic-gold/20" />
+                      <span>{formatDate(selectedReading.createdAt)}</span>
+                      <div className="h-px w-8 bg-mystic-gold/20" />
+                    </div>
+                    <h2 className="text-4xl md:text-6xl font-serif text-white mb-6">
+                      {selectedReading.spreadName || "Biên Niên Sử Mệnh Vận"}
+                    </h2>
+                    {selectedReading.userQuestion && (
+                      <div className="max-w-2xl mx-auto italic text-gray-400 text-lg md:text-xl font-light">
+                        "{selectedReading.userQuestion}"
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cards Row */}
+                  <div className="mb-24 overflow-x-auto pb-10 no-scrollbar">
+                    <div className="flex justify-center gap-8 md:gap-12 min-w-max px-8">
+                      {selectedReading.readingCards.map((rc, idx) => (
+                        <motion.div 
+                          key={rc.id}
+                          initial={{ opacity: 0, rotateY: 90 }}
+                          animate={{ opacity: 1, rotateY: 0 }}
+                          transition={{ delay: 0.3 + idx * 0.1, duration: 0.6 }}
+                          className="flex flex-col items-center gap-6"
+                        >
+                          <div className="text-[10px] font-bold text-mystic-gold/40 flex items-center gap-2">
+                             <Hash className="w-3 h-3" /> Position {rc.position}
+                          </div>
+                          <div className="w-[180px] md:w-[240px] aspect-[1/1.7] rounded-[1.5rem] md:rounded-[2rem] overflow-hidden border-2 border-mystic-gold/20 shadow-2xl relative group">
+                            <img 
+                              src={rc.card.imagePath} 
+                              alt={rc.card.name} 
+                              className={`w-full h-full object-cover ${rc.isReversed ? 'rotate-180' : ''}`}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
+                              <span className="text-white font-serif text-lg">{rc.card.name}</span>
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <h4 className="text-white font-serif text-xl mb-1">{rc.card.name}</h4>
+                            <span className="text-[10px] text-mystic-gold font-bold uppercase tracking-widest">
+                              {rc.isReversed ? 'Reversed (Ngược)' : 'Upright (Xuôi)'}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Interpretation Content */}
+                  <div className="max-w-4xl mx-auto">
+                    <div className="flex items-center gap-4 mb-12">
+                      <div className="w-14 h-14 rounded-2xl bg-mystic-gold/10 border border-mystic-gold/20 flex items-center justify-center text-mystic-gold">
+                        <Quote className="w-7 h-7" />
+                      </div>
+                      <h3 className="text-3xl font-serif gold-text">Thông Điệp Chữa Lành</h3>
+                    </div>
+
+                    <div className="glass p-8 md:p-12 rounded-[2.5rem] border-white/5 relative">
+                      <div className="absolute -top-6 -right-6">
+                        <Sparkles className="w-12 h-12 text-mystic-gold/20" />
+                      </div>
+                      
+                      <div className="prose prose-invert prose-gold max-w-none">
+                        {selectedReading.interpretation ? (
+                          <div className="text-lg md:text-xl text-gray-300 leading-relaxed font-light whitespace-pre-wrap selection:bg-mystic-gold selection:text-mystic-dark">
+                            {selectedReading.interpretation.replace(/\*\*/g, '')}
+                          </div>
+                        ) : (
+                          <div className="text-gray-500 italic text-center py-20">
+                            Hồ sơ lưu trữ này không chứa nội dung giải luận chi tiết.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Chat History if exists in notes */}
+                    {selectedReading.notes && (
+                      <div className="mt-20">
+                        <div className="flex items-center gap-4 mb-10">
+                           <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400">
+                             <ScrollText className="w-5 h-5" />
+                           </div>
+                           <h4 className="text-xl font-serif text-white/60">Đối Thoại Thêm</h4>
+                        </div>
+                        <div className="space-y-4">
+                          {selectedReading.notes.split('\n\n---\n\n').map((chunk, idx) => {
+                            const isUser = chunk.startsWith('**Bạn**:');
+                            const text = chunk.replace(/^\*\*(Bạn|Bậc thầy Tarot)\*\*:\s*/, '');
+                            return (
+                              <div key={idx} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
+                                <div className={`p-4 rounded-2xl max-w-[80%] ${isUser ? 'bg-mystic-gold/10 border-mystic-gold/20 border text-mystic-gold' : 'bg-white/5 border-white/10 border text-gray-400'}`}>
+                                  <div className="text-[9px] font-bold mb-1 uppercase tracking-widest opacity-50">
+                                    {isUser ? 'Bạn' : 'Bậc Thầy'}
+                                  </div>
+                                  <p className="text-sm font-light">{text.replace(/\*\*/g, '')}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Modal Footer Decor */}
+              <div className="h-2 w-full bg-gradient-to-r from-transparent via-mystic-gold/30 to-transparent" />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

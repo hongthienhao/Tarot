@@ -33,3 +33,35 @@ export const protect = async (req, res, next) => {
     next(new AppError('Token không hợp lệ hoặc đã hết hạn.', 401));
   }
 };
+
+export const optionalProtect = async (req, res, next) => {
+  try {
+    let token;
+    
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith('Bearer')
+    ) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+      return next();
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key_tarot');
+
+    const currentUser = await prisma.user.findUnique({
+      where: { id: decoded.id },
+    });
+
+    if (currentUser) {
+      req.user = currentUser;
+    }
+    
+    next();
+  } catch (error) {
+    // If token is invalid or user not found, just proceed as guest
+    next();
+  }
+};
