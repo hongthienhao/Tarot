@@ -1,5 +1,5 @@
 import express from 'express';
-import { drawCards } from '../controllers/cardController.js';
+import { drawCards, generateReading } from '../controllers/cardController.js';
 
 const router = express.Router();
 
@@ -27,5 +27,32 @@ const router = express.Router();
  *         description: Invalid input
  */
 router.post('/draw', drawCards);
+
+/**
+ * @swagger
+ * /cards/ai-reading:
+ *   post:
+ *     summary: Get AI Tarot reading (Streamed via SSE)
+ *     description: Returns a streaming text response from the AI acting as a Tarot Master.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               spreadType:
+ *                 type: string
+ *               userQuestion:
+ *                 type: string
+ *               cards:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: Server-Sent Events stream
+ */
+router.post('/ai-reading', generateReading);
 
 export default router;

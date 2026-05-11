@@ -7,4 +7,20 @@ const apiClient = axios.create({
   },
 });
 
+apiClient.interceptors.request.use((config) => {
+  const storage = localStorage.getItem('auth-storage');
+  if (storage) {
+    try {
+      const parsed = JSON.parse(storage);
+      const token = parsed.state?.token;
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (e) {
+      console.error('Error parsing auth-storage', e);
+    }
+  }
+  return config;
+});
+
 export default apiClient;

@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Activity, ChevronLeft, RefreshCw, BookOpen, Hash, BrainCircuit, Star, Shuffle } from 'lucide-react';
+import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Activity, ChevronLeft, RefreshCw, BookOpen, Hash, BrainCircuit, Star, Shuffle, Save } from 'lucide-react';
 import apiClient from '../api/client';
+import useAuthStore from '../store/useAuthStore';
 import TarotCard from './TarotCard';
 import CardFan from './CardFan';
 
@@ -207,6 +208,7 @@ const DealingOverlay = ({ visible }) => {
 
 
 const SpreadSelector = () => {
+  const { isAuthenticated } = useAuthStore();
   const [viewMode, setViewMode] = useState('grid');
   const [mode, setMode] = useState('select'); // 'select', 'confirm', 'drawing', 'reading'
   const [isFetching, setIsFetching] = useState(false);
@@ -214,6 +216,11 @@ const SpreadSelector = () => {
   const [activeCard, setActiveCard] = useState(null);
   const [pendingSpread, setPendingSpread] = useState(null);
   const [isShuffling, setIsShuffling] = useState(false);
+
+  // AI States
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState([]);
+  const [aiStatus, setAiStatus] = useState('idle'); // idle, loading, streaming, done, error
 
   // Drawing flow states
   const [availableCards, setAvailableCards] = useState([]);
@@ -331,6 +338,123 @@ const SpreadSelector = () => {
     setRevealedCardIds(new Set());
     setPendingSpread(null);
     setSelectedFanIndices(new Set());
+    setChatInput('');
+    setChatHistory([]);
+    setAiStatus('idle');
+  };
+
+  const handleSaveReading = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const cardsData = drawnCards.map((card, index) => ({
+        cardId: card.id,
+        position: index + 1,
+        isReversed: card.isReversed || false,
+      }));
+      const notes = chatHistory.map(msg => `**${msg.role === 'user' ? 'Bạn' : 'Bậc thầy Tarot'}**: ${msg.text}`).join('\n\n---\n\n');
+      
+      await apiClient.post('/readings', { cards: cardsData, notes });
+      alert("Đã lưu trải bài thành công!");
+    } catch (error) {
+      console.error('Error saving reading:', error);
+      alert("Không thể lưu trải bài. Vui lòng thử lại.");
+    }
+  };
+
+  const handleRequestAIReading = async (userMessage) => {
+    if (drawnCards.length === 0) return;
+    if (aiStatus === 'streaming') return;
+    
+    const msgToSend = userMessage || chatInput || 'Hãy giải bài giúp tôi.';
+    
+    // Lưu lại history hiện tại trước khi update state (để gửi lên API)
+    const currentHistory = chatHistory;
+
+    setAiStatus('streaming');
+    setChatInput('');
+    // Thêm tin nhắn user và placeholder cho AI
+    setChatHistory(prev => [
+      ...prev, 
+      { role: 'user', text: msgToSend },
+      { role: 'ai', text: '' }
+    ]);
+    let aiResponseText = ''; // Dùng biến cục bộ để gom stream text tránh lỗi duplicate do React Strict Mode
+
+    try {
+      const url = (apiClient.defaults.baseURL || 'http://localhost:3000/api/v1') + '/cards/ai-reading';
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          cards: drawnCards, 
+          spreadType: readingResult?.spreadName, 
+          message: msgToSend,
+          history: currentHistory
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Lỗi kết nối AI');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let currentError = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunkStr = decoder.decode(value, { stream: true });
+        const lines = chunkStr.split('\n');
+        for (let line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6);
+            if (dataStr === '[DONE]') {
+              setAiStatus('idle');
+              break;
+            }
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.error) {
+                aiResponseText += '\n[Lỗi: ' + data.error + ']';
+                setChatHistory(prev => {
+                  const newHistory = [...prev];
+                  const lastIndex = newHistory.length - 1;
+                  newHistory[lastIndex] = { ...newHistory[lastIndex], text: aiResponseText };
+                  return newHistory;
+                });
+                currentError = true;
+                setAiStatus('error');
+              } else if (data.text) {
+                aiResponseText += data.text;
+                setChatHistory(prev => {
+                  const newHistory = [...prev];
+                  const lastIndex = newHistory.length - 1;
+                  newHistory[lastIndex] = { ...newHistory[lastIndex], text: aiResponseText };
+                  return newHistory;
+                });
+              }
+            } catch (e) {
+              console.error('JSON parse error in SSE chunk', e);
+            }
+          }
+        }
+      }
+      if (!currentError) setAiStatus('idle');
+    } catch (error) {
+      console.error('Error fetching AI reading:', error);
+      setAiStatus('error');
+      setChatHistory(prev => {
+        const newHistory = [...prev];
+        const lastIndex = newHistory.length - 1;
+        newHistory[lastIndex] = {
+          ...newHistory[lastIndex],
+          text: aiResponseText + '\n[Bậc thầy Tarot đang bận. Vui lòng thử lại.]'
+        };
+        return newHistory;
+      });
+    }
   };
 
   return (
@@ -426,6 +550,7 @@ const SpreadSelector = () => {
                 <h2 className="text-4xl md:text-5xl font-serif gold-text mb-4">{pendingSpread?.name}</h2>
                 <p className="text-gray-400 font-light max-w-md mx-auto">{pendingSpread?.description}</p>
               </div>
+
               <motion.button
                 onClick={handleConfirmShuffle}
                 whileHover={{ scale: 1.06 }}
@@ -602,27 +727,91 @@ const SpreadSelector = () => {
                         </div>
                       </div>
 
-                      {/* AI Sidebar Placeholder */}
+                      {/* AI Sidebar */}
                       <div className="lg:col-span-1">
-                        <div className="glass p-8 rounded-3xl border-mystic-gold/30 bg-gradient-to-b from-mystic-gold/5 to-transparent sticky top-32">
-                           <div className="flex items-center gap-3 mb-6">
+                        <div className="glass p-8 rounded-3xl border-mystic-gold/30 bg-gradient-to-b from-mystic-gold/5 to-transparent sticky top-32 flex flex-col max-h-[85vh]">
+                           <div className="flex items-center gap-3 mb-6 shrink-0">
                              <BrainCircuit className="text-mystic-gold animate-pulse" size={28} />
                              <h3 className="text-xl font-serif gold-text">AI Oracle</h3>
                            </div>
-                           <p className="text-gray-400 text-sm font-light leading-relaxed mb-6">
-                             Hệ thống AI đang được tôi luyện để kết nối các lá bài của bạn thành một câu chuyện hoàn chỉnh. 
-                           </p>
-                           <div className="space-y-4">
-                             {[1, 2, 3].map(i => (
-                               <div key={i} className="h-4 bg-mystic-gold/10 rounded-full w-full animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
-                             ))}
-                             <div className="h-4 bg-mystic-gold/10 rounded-full w-2/3 animate-pulse" style={{ animationDelay: '0.8s' }} />
+                           
+                           <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4 mb-4">
+                             {chatHistory.length === 0 ? (
+                               <div className="text-center py-10">
+                                 <p className="text-gray-400 text-sm font-light leading-relaxed mb-6">
+                                   Hệ thống AI đã sẵn sàng kết nối các lá bài của bạn thành một câu chuyện hoàn chỉnh.
+                                 </p>
+                                 <button 
+                                   onClick={() => handleRequestAIReading('Hãy giải bài giúp tôi.')}
+                                   className="w-full py-3 bg-mystic-gold/10 hover:bg-mystic-gold/20 border border-mystic-gold/30 rounded-xl text-mystic-gold font-bold uppercase tracking-widest text-xs transition-colors"
+                                 >
+                                   Bắt đầu Giải Bài
+                                 </button>
+                               </div>
+                             ) : (
+                               chatHistory.map((msg, idx) => (
+                                 <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                   <div className={`p-4 rounded-2xl max-w-[90%] ${msg.role === 'user' ? 'bg-mystic-gold/10 border-mystic-gold/30 border rounded-tr-sm text-mystic-gold' : 'bg-mystic-dark/60 border-mystic-gold/10 border rounded-tl-sm text-gray-300'}`}>
+                                     <div className="prose prose-invert max-w-none text-sm font-light leading-relaxed whitespace-pre-wrap">
+                                       {msg.text.replace(/\*\*/g, '')}
+                                       {msg.role === 'ai' && idx === chatHistory.length - 1 && aiStatus === 'streaming' && (
+                                         <motion.span 
+                                           className="inline-block w-2.5 h-2.5 ml-2 bg-mystic-gold shadow-[0_0_10px_rgba(212,175,55,0.8)] align-middle"
+                                           style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }}
+                                           animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.3, 0.8], rotate: [0, 90, 180] }} 
+                                           transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                         />
+                                       )}
+                                     </div>
+                                   </div>
+                                 </div>
+                               ))
+                             )}
                            </div>
-                           <div className="mt-8 pt-8 border-t border-mystic-gold/10 flex items-center justify-between">
-                             <span className="text-[10px] text-mystic-gold/40 uppercase tracking-widest font-bold">Status: Training</span>
-                             <div className="flex gap-1">
-                               <Star size={10} className="text-mystic-gold/20" />
-                               <Star size={10} className="text-mystic-gold/20" />
+
+                           {chatHistory.length > 0 && (
+                             <div className="shrink-0 mt-2">
+                               <div className="relative">
+                                 <input
+                                   type="text"
+                                   placeholder="Hỏi thêm Bậc thầy Tarot..."
+                                   value={chatInput}
+                                   onChange={e => setChatInput(e.target.value)}
+                                   onKeyDown={e => {
+                                     if (e.key === 'Enter' && chatInput.trim()) {
+                                       handleRequestAIReading(chatInput);
+                                     }
+                                   }}
+                                   disabled={aiStatus === 'streaming'}
+                                   className="w-full pl-4 pr-12 py-3 bg-mystic-dark/80 border border-mystic-gold/20 rounded-xl text-mystic-gold placeholder:text-mystic-gold/30 focus:outline-none focus:border-mystic-gold transition-colors text-sm font-light"
+                                 />
+                                 <button 
+                                   onClick={() => { if (chatInput.trim()) handleRequestAIReading(chatInput); }}
+                                   disabled={aiStatus === 'streaming' || !chatInput.trim()}
+                                   className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-mystic-gold/60 hover:text-mystic-gold disabled:opacity-50"
+                                 >
+                                   <Sparkles size={16} />
+                                 </button>
+                               </div>
+                             </div>
+                           )}
+
+                           <div className="mt-4 pt-4 border-t border-mystic-gold/10 flex items-center justify-between shrink-0">
+                             <span className="text-[10px] text-mystic-gold/40 uppercase tracking-widest font-bold">
+                               Status: {aiStatus === 'streaming' ? 'THINKING...' : aiStatus === 'idle' && chatHistory.length > 0 ? 'READY' : 'WAITING'}
+                             </span>
+                             <div className="flex gap-2 items-center">
+                               {aiStatus === 'idle' && chatHistory.length > 0 && isAuthenticated && (
+                                 <button
+                                   onClick={handleSaveReading}
+                                   className="flex items-center gap-1 px-3 py-1 bg-mystic-gold/20 hover:bg-mystic-gold/30 rounded text-[10px] font-bold uppercase tracking-wider text-mystic-gold transition-colors border border-mystic-gold/30"
+                                 >
+                                   <Save size={12} /> Lưu Trải Bài
+                                 </button>
+                               )}
+                               {!isAuthenticated && aiStatus === 'idle' && chatHistory.length > 0 && (
+                                 <span className="text-[10px] text-mystic-gold/40 uppercase tracking-wider">Đăng nhập để lưu</span>
+                               )}
                              </div>
                            </div>
                         </div>

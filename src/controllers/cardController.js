@@ -1,6 +1,7 @@
 import prisma from '../config/prismaClient.js';
 import catchAsync from '../utils/catchAsync.js';
 import AppError from '../utils/appError.js';
+import { streamTarotReading } from '../services/aiService.js';
 
 const SPREADS = {
   insight: { name: 'The Insight (Tuệ Giác)', quantity: 1, description: 'Phản hồi nhanh và trực tiếp cho tâm hồn.' },
@@ -79,4 +80,43 @@ export const drawCards = catchAsync(async (req, res, next) => {
       cards
     }
   });
+});
+
+export const generateReading = catchAsync(async (req, res, next) => {
+  const { cards, spreadType, message, history } = req.body;
+
+  if (!cards || !Array.isArray(cards) || cards.length === 0) {
+    return next(new AppError('Vui lòng cung cấp danh sách các lá bài đã rút.', 400));
+  }
+
+  // Thiết lập Server-Sent Events (SSE) để stream dữ liệu
+  res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  try {
+    const stream = await streamTarotReading(
+      cards, 
+      spreadType || 'Trải bài Tarot', 
+      message || 'Hãy giải bài giúp tôi.', 
+      history || []
+    );
+
+    for await (const chunk of stream) {
+      const chunkText = chunk.text();
+      if (chunkText) {
+        // Gửi data chunk về client theo chuẩn SSE
+        res.write(`data: ${JSON.stringify({ text: chunkText })}\n\n`);
+      }
+    }
+
+    // Đánh dấu kết thúc stream
+    res.write('data: [DONE]\n\n');
+    res.end();
+  } catch (error) {
+    console.error('Lỗi khi stream AI reading:', error);
+    res.write(`data: ${JSON.stringify({ error: 'Đã xảy ra lỗi khi kết nối với Bậc thầy Tarot (AI).' })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    res.end();
+  }
 });

@@ -8,6 +8,8 @@ import AppError from './utils/appError.js';
 import globalErrorHandler from './middlewares/errorMiddleware.js';
 import healthRouter from './routes/healthRoutes.js';
 import cardRouter from './routes/cardRoutes.js';
+import authRouter from './routes/authRoutes.js';
+import readingRouter from './routes/readingRoutes.js';
 import { setupSwagger } from './config/swagger.js';
 
 const app = express();
@@ -44,6 +46,8 @@ app.use(cors());
 // 2) ROUTES
 app.use('/api/v1/health', healthRouter);
 app.use('/api/v1/cards', cardRouter);
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/readings', readingRouter);
 
 // Handle unhandled routes
 app.use((req, res, next) => {
