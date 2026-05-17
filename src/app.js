@@ -14,6 +14,11 @@ import { setupSwagger } from './config/swagger.js';
 
 const app = express();
 
+// Trust proxy behind load balancers/proxies (e.g. Render, Vercel) for accurate rate limiting
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // Set security HTTP headers
 // Note: helmet might block swagger UI CSS/JS if not configured properly, 
 // but for development it's usually fine.
@@ -40,8 +45,26 @@ app.use(express.json({ limit: '10kb' }));
 
 // Data sanitization could be added here (e.g., mongoSanitize, xss)
 
-// Implement CORS
-app.use(cors());
+// Implement CORS with specific, secure origins in production
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:4173'];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, postman, or curl)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+        return callback(null, true);
+      } else {
+        return callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
 
 // 2) ROUTES
 app.use('/api/v1/health', healthRouter);
