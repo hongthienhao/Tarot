@@ -69,16 +69,6 @@ const spreads = [
     delay: 0.35,
     quantity: 10,
   },
-  {
-    id: 11,
-    name: 'Trải Chuyên Sâu',
-    tagline: '>10 lá / Custom',
-    description: 'Dành cho những hành trình khám phá tâm linh chuyên sâu hoặc yêu cầu tùy chỉnh đặc biệt.',
-    icon: <Activity className="w-8 h-8" />,
-    color: 'from-mystic-gold',
-    delay: 0.4,
-    quantity: 12,
-  },
 ];
 
 // ── Shuffle effect data (pre-computed at module level, no Math.random in render) ──

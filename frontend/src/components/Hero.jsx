@@ -32,7 +32,7 @@ const Hero = () => {
             </span>
           </motion.div>
 
-          <h1 className="text-6xl md:text-8xl lg:text-9xl font-serif mb-10 leading-[0.9] tracking-tight">
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-serif mb-10 leading-[1.1] md:leading-[1.05] tracking-tight">
             Thấu Hiểu <br />
             <span className="gold-text italic block mt-4">Định Mệnh</span>
           </h1>
@@ -50,7 +50,7 @@ const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2, duration: 1 }}
-            className="flex flex-col sm:flex-row gap-8 justify-center items-center"
+            className="flex justify-center items-center"
           >
             <motion.button 
               onClick={scrollToSpreads}
@@ -59,14 +59,6 @@ const Hero = () => {
               className="px-12 py-5 bg-mystic-gold text-mystic-dark font-bold uppercase tracking-[0.2em] text-sm rounded-full transition-all cursor-pointer"
             >
               Bắt đầu hành trình
-            </motion.button>
-            <motion.button 
-              onClick={scrollToSpreads}
-              whileHover={{ scale: 1.05, backgroundColor: 'rgba(212,175,55,0.05)' }}
-              whileTap={{ scale: 0.95 }}
-              className="px-12 py-5 border border-mystic-gold/30 text-mystic-gold font-bold uppercase tracking-[0.2em] text-sm rounded-full transition-all cursor-pointer"
-            >
-              Khám phá bí ẩn
             </motion.button>
           </motion.div>
         </motion.div>
