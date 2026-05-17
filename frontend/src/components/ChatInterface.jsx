@@ -42,8 +42,31 @@ const ChatInterface = ({
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [copied, setCopied] = useState(false);
   const chatEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
+
+  const handleCopySpread = () => {
+    if (!drawnCards || drawnCards.length === 0) return;
+    
+    const formattedList = drawnCards.map((c, i) => {
+      const name = c?.name || c?.card?.name || `Lá bài #${i + 1}`;
+      const isReversed = c?.isReversed;
+      const orientation = isReversed ? 'Ngược (Reversed)' : 'Xuôi (Upright)';
+      return `${i + 1}. ${name} - ${orientation}`;
+    }).join('\n');
+
+    const copyText = `Trải bài Tarot của tôi:\n${formattedList}`;
+    
+    navigator.clipboard.writeText(copyText)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Lỗi khi sao chép trải bài:', err);
+      });
+  };
 
   // Auto scroll logic on new streaming/message events
   useEffect(() => {
@@ -209,7 +232,26 @@ const ChatInterface = ({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
+                {drawnCards && drawnCards.length > 0 && (
+                  <button
+                    onClick={handleCopySpread}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-mystic-gold/10 hover:bg-mystic-gold/20 border border-mystic-gold/30 rounded-xl text-mystic-gold text-[10px] font-bold uppercase tracking-wider transition-all duration-300 shadow-[0_0_10px_rgba(212,175,55,0.05)] cursor-pointer"
+                    title="Sao chép danh sách trải bài gồm xuôi và ngược"
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={11} className="text-green-400" />
+                        <span className="text-green-400">Đã chép!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={11} />
+                        <span>Sao chép</span>
+                      </>
+                    )}
+                  </button>
+                )}
                 <button
                   onClick={() => setIsMinimized(true)}
                   className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-white/40 hover:text-white transition-all cursor-pointer"
