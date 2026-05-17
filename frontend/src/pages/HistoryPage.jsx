@@ -16,7 +16,8 @@ import {
   Quote,
   Trash2,
   Check,
-  ListChecks
+  ListChecks,
+  BrainCircuit
 } from 'lucide-react';
 import apiClient from '../api/client';
 import useAuthStore from '../store/useAuthStore';
@@ -29,6 +30,170 @@ const HistoryPage = () => {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [notification, setNotification] = useState(null);
+
+  // States for Interactive Soul Chat
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState([]);
+  const [aiStatus, setAiStatus] = useState('idle');
+  const chatEndRef = React.useRef(null);
+
+  // Initialize and parse chat history when selectedReading changes
+  useEffect(() => {
+    if (selectedReading) {
+      if (selectedReading.notes) {
+        const parsedHistory = selectedReading.notes.split('\n\n---\n\n').map(chunk => {
+          const isUser = chunk.startsWith('**Bạn**:');
+          const text = chunk.replace(/^\*\*(Bạn|Bậc thầy Tarot)\*\*:\s*/, '');
+          return {
+            role: isUser ? 'user' : 'ai',
+            text: text
+          };
+        });
+        setChatHistory(parsedHistory);
+      } else {
+        setChatHistory([]);
+      }
+      setChatInput('');
+      setAiStatus('idle');
+    }
+  }, [selectedReading]);
+
+  // Smooth scroll chat to bottom
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatHistory, aiStatus]);
+
+  // Handler for sending follow-up questions
+  const handleSendHistoryQuestion = async (userMessage) => {
+    if (!selectedReading) return;
+    if (aiStatus === 'streaming') return;
+
+    const msgToSend = userMessage || chatInput || '';
+    if (!msgToSend.trim()) return;
+
+    const currentHistory = chatHistory;
+    setAiStatus('streaming');
+    setChatInput('');
+
+    setChatHistory(prev => [
+      ...prev,
+      { role: 'user', text: msgToSend },
+      { role: 'ai', text: '' }
+    ]);
+
+    let aiResponseText = '';
+    let currentError = false;
+
+    try {
+      // Map drawn cards to format expected by backend AI prompt builder
+      const formattedCards = selectedReading.readingCards.map(rc => ({
+        id: rc.card.id,
+        name: rc.card.name,
+        isReversed: rc.isReversed,
+        orientation: rc.isReversed ? 'Ngược (Reversed)' : 'Xuôi (Upright)',
+        message: rc.isReversed ? rc.card.meaningReversed : rc.card.meaningUpright
+      }));
+
+      const url = (apiClient.defaults.baseURL || 'http://localhost:3000/api/v1') + '/cards/ai-reading';
+      const token = useAuthStore.getState().token;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          cards: formattedCards,
+          spreadType: selectedReading.spreadName || 'Trải bài Tarot',
+          message: msgToSend,
+          history: currentHistory,
+          readingId: selectedReading.id
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Lỗi kết nối AI');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunkStr = decoder.decode(value, { stream: true });
+        const lines = chunkStr.split('\n');
+        for (let line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6);
+            if (dataStr === '[DONE]') {
+              setAiStatus('idle');
+              break;
+            }
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.done && data.readingId) {
+                // Compile new notes string representing total cumulative history
+                const finalNotes = currentHistory.length > 0
+                  ? currentHistory.map(m => `**${m.role === 'user' ? 'Bạn' : 'Bậc thầy Tarot'}**: ${m.text}`).join('\n\n---\n\n') + `\n\n---\n\n**Bạn**: ${msgToSend}\n\n**Bậc thầy Tarot**: ${aiResponseText}`
+                  : `**Bạn**: ${msgToSend}\n\n**Bậc thầy Tarot**: ${aiResponseText}`;
+
+                // Update details modal immediately
+                setSelectedReading(prev => ({
+                  ...prev,
+                  notes: finalNotes
+                }));
+
+                // Update listings state so changes persist when modal closes
+                setReadings(prev => prev.map(r => r.id === selectedReading.id ? { ...r, notes: finalNotes } : r));
+
+                setAiStatus('idle');
+                break;
+              }
+              if (data.error) {
+                aiResponseText += '\n[Lỗi: ' + data.error + ']';
+                setChatHistory(prev => {
+                  const newHistory = [...prev];
+                  const lastIndex = newHistory.length - 1;
+                  newHistory[lastIndex] = { ...newHistory[lastIndex], text: aiResponseText };
+                  return newHistory;
+                });
+                currentError = true;
+                setAiStatus('error');
+              } else if (data.text) {
+                aiResponseText += data.text;
+                setChatHistory(prev => {
+                  const newHistory = [...prev];
+                  const lastIndex = newHistory.length - 1;
+                  newHistory[lastIndex] = { ...newHistory[lastIndex], text: aiResponseText };
+                  return newHistory;
+                });
+              }
+            } catch (err) {
+              console.error('Error parsing SSE JSON:', err);
+            }
+          }
+        }
+      }
+      if (!currentError) setAiStatus('idle');
+    } catch (error) {
+      console.error('Lỗi khi trò chuyện cùng AI:', error);
+      setAiStatus('error');
+      setChatHistory(prev => {
+        const newHistory = [...prev];
+        const lastIndex = newHistory.length - 1;
+        newHistory[lastIndex] = {
+          ...newHistory[lastIndex],
+          text: aiResponseText + '\n[Bậc thầy đang thiền định sâu. Vui lòng kết nối lại sau.]'
+        };
+        return newHistory;
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchReadings = async () => {
@@ -420,33 +585,93 @@ const HistoryPage = () => {
                       </div>
                     </div>
                     
-                    {/* Chat History if exists in notes */}
-                    {selectedReading.notes && (
-                      <div className="mt-20">
-                        <div className="flex items-center gap-4 mb-10">
-                           <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-gray-400">
-                             <ScrollText className="w-5 h-5" />
-                           </div>
-                           <h4 className="text-xl font-serif text-white/60">Đối Thoại Thêm</h4>
+                    {/* Cuộc Hội Thoại Tâm Giao (Contextual AI Chat) */}
+                    <div className="mt-20 border-t border-mystic-gold/10 pt-16">
+                      <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-mystic-gold/10 border border-mystic-gold/20 flex items-center justify-center text-mystic-gold">
+                            <BrainCircuit className="w-6 h-6 animate-pulse" />
+                          </div>
+                          <div>
+                            <h4 className="text-2xl font-serif gold-text tracking-wide">Cuộc Hội Thoại Tâm Giao</h4>
+                            <p className="text-xs text-gray-400 font-light mt-0.5">Trò chuyện trực tiếp cùng Bậc thầy Tarot để làm rõ thêm các thông điệp</p>
+                          </div>
                         </div>
-                        <div className="space-y-4">
-                          {selectedReading.notes.split('\n\n---\n\n').map((chunk, idx) => {
-                            const isUser = chunk.startsWith('**Bạn**:');
-                            const text = chunk.replace(/^\*\*(Bạn|Bậc thầy Tarot)\*\*:\s*/, '');
-                            return (
-                              <div key={idx} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}>
-                                <div className={`p-4 rounded-2xl max-w-[80%] ${isUser ? 'bg-mystic-gold/10 border-mystic-gold/20 border text-mystic-gold' : 'bg-white/5 border-white/10 border text-gray-400'}`}>
+                        {aiStatus === 'streaming' && (
+                          <div className="flex gap-1 bg-mystic-gold/10 px-3 py-1 rounded-full border border-mystic-gold/20 text-[9px] font-bold tracking-widest text-mystic-gold uppercase animate-pulse">
+                            BẬC THẦY ĐANG SUY NGẪM...
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="glass p-6 md:p-8 rounded-[2.5rem] border-white/5 bg-gradient-to-b from-mystic-gold/5 to-transparent flex flex-col max-h-[550px] shadow-2xl relative">
+                        {/* Messages Area */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6 max-h-[380px] min-h-[120px] mb-6">
+                          {chatHistory.length === 0 ? (
+                            <div className="text-center py-10 flex flex-col items-center justify-center">
+                              <p className="text-gray-400 text-sm font-light leading-relaxed max-w-md">
+                                Hãy chia sẻ những cảm nhận hoặc đặt câu hỏi tiếp nối của bạn về các lá bài này. Tri kỷ linh hồn luôn sẵn lòng lắng nghe và chia sẻ cùng bạn.
+                              </p>
+                            </div>
+                          ) : (
+                            chatHistory.map((msg, idx) => (
+                              <motion.div 
+                                key={idx} 
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+                              >
+                                <div className={`p-4 rounded-[1.5rem] max-w-[85%] md:max-w-[80%] shadow-xl ${
+                                  msg.role === 'user' 
+                                    ? 'bg-gradient-to-br from-mystic-gold/25 to-mystic-gold/5 border-mystic-gold/30 border rounded-tr-none text-mystic-gold' 
+                                    : 'bg-mystic-dark/50 border-white/5 border rounded-tl-none text-gray-200'
+                                }`}>
                                   <div className="text-[9px] font-bold mb-1 uppercase tracking-widest opacity-50">
-                                    {isUser ? 'Bạn' : 'Bậc Thầy'}
+                                    {msg.role === 'user' ? 'Bạn' : 'Bậc Thầy'}
                                   </div>
-                                  <p className="text-sm font-light">{text.replace(/\*\*/g, '')}</p>
+                                  <div className="prose prose-invert max-w-none text-sm font-light leading-relaxed whitespace-pre-wrap">
+                                    {msg.text.replace(/\*\*/g, '')}
+                                    {msg.role === 'ai' && idx === chatHistory.length - 1 && aiStatus === 'streaming' && (
+                                      <motion.span 
+                                        className="inline-block w-2 h-2 ml-2 bg-mystic-gold shadow-[0_0_10px_rgba(212,175,55,0.8)] align-middle"
+                                        style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }}
+                                        animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.3, 0.8], rotate: [0, 90, 180] }} 
+                                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                      />
+                                    )}
+                                  </div>
                                 </div>
-                              </div>
-                            );
-                          })}
+                              </motion.div>
+                            ))
+                          )}
+                          <div ref={chatEndRef} />
+                        </div>
+
+                        {/* Input Area */}
+                        <div className="relative group shrink-0">
+                          <input
+                            type="text"
+                            placeholder="Gửi câu hỏi tiếp nối về trải bài của bạn... (ví dụ: 'Tại sao lá The Fool xuất hiện?')"
+                            value={chatInput}
+                            onChange={e => setChatInput(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && chatInput.trim()) {
+                                handleSendHistoryQuestion(chatInput);
+                              }
+                            }}
+                            disabled={aiStatus === 'streaming'}
+                            className="w-full pl-6 pr-14 py-4 bg-mystic-dark/70 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:border-mystic-gold/50 focus:bg-mystic-dark/90 transition-all text-sm font-light shadow-inner disabled:opacity-50"
+                          />
+                          <button 
+                            onClick={() => { if (chatInput.trim()) handleSendHistoryQuestion(chatInput); }}
+                            disabled={aiStatus === 'streaming' || !chatInput.trim()}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-mystic-gold/10 text-mystic-gold/50 hover:text-mystic-gold disabled:opacity-20 hover:bg-mystic-gold/20 transition-all cursor-pointer"
+                          >
+                            <Sparkles size={16} />
+                          </button>
                         </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
