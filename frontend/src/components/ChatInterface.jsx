@@ -175,6 +175,136 @@ const ChatInterface = ({
     </div>
   );
 
+  const parseInlineFormatting = (text, role) => {
+    const parts = text.split(/\*\*/g);
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        return (
+          <strong 
+            key={index} 
+            className={`font-bold tracking-wider ${role === 'ai' ? 'text-mystic-gold font-serif' : 'text-white'}`}
+          >
+            {part}
+          </strong>
+        );
+      }
+      return part;
+    });
+  };
+
+  const renderMessageContent = (text, role, isLastStreaming) => {
+    if (role === 'user') {
+      return <p className="text-sm font-light leading-relaxed whitespace-pre-wrap">{text}</p>;
+    }
+
+    const lines = text.split('\n');
+    const elements = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      
+      // Handle trailing cursor on streaming
+      const isLastLine = i === lines.length - 1;
+      const cursor = isLastLine && isLastStreaming ? (
+        <motion.span 
+          className="inline-block w-2.5 h-2.5 ml-2 bg-mystic-gold shadow-[0_0_8px_rgba(212,175,55,0.9)] align-middle shrink-0"
+          style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }}
+          animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.3, 0.8], rotate: [0, 90, 180] }} 
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+        />
+      ) : null;
+
+      if (!line) {
+        if (cursor) {
+          elements.push(<span key={`space-${i}`} className="inline-block">{cursor}</span>);
+        } else {
+          elements.push(<div key={`space-${i}`} className="h-3" />);
+        }
+        continue;
+      }
+
+      // 1. Headers starting with ### or ## or #
+      if (line.startsWith('###') || line.startsWith('##') || line.startsWith('#')) {
+        const headerText = line.replace(/^#+\s*/, '');
+        elements.push(
+          <h4 
+            key={`header-${i}`} 
+            className="text-xs md:text-sm font-serif font-bold tracking-widest uppercase gold-text mt-5 mb-3 flex items-center gap-2 border-b border-mystic-gold/15 pb-1.5 w-full"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-mystic-gold shrink-0 animate-pulse-slow" />
+            <span className="flex-1">{parseInlineFormatting(headerText, role)}</span>
+            {cursor}
+          </h4>
+        );
+        continue;
+      }
+
+      // 2. Headings structured as **1. Heading** or **Heading:**
+      if (line.startsWith('**') && (line.endsWith('**') || line.includes(':**') || line.includes('**.'))) {
+        const headerText = line.replace(/\*\*/g, '');
+        elements.push(
+          <h5 
+            key={`sub-header-${i}`} 
+            className="text-[11px] md:text-xs font-serif font-bold tracking-wider text-mystic-gold uppercase mt-4 mb-2 flex items-center gap-2"
+          >
+            <div className="w-1.5 h-1.5 bg-mystic-gold rotate-45 shrink-0 animate-pulse" />
+            <span className="flex-1">{headerText}</span>
+            {cursor}
+          </h5>
+        );
+        continue;
+      }
+
+      // 3. Blockquotes or Guidance starting with >
+      if (line.startsWith('>')) {
+        const quoteText = line.replace(/^>\s*/, '');
+        elements.push(
+          <div 
+            key={`quote-${i}`} 
+            className="my-3.5 p-4 rounded-2xl border-l-2 border-mystic-gold/45 bg-mystic-gold/5 italic text-mystic-gold/90 font-light text-[11px] leading-relaxed backdrop-blur-sm shadow-[inset_0_2px_8px_rgba(212,175,55,0.02)]"
+          >
+            {parseInlineFormatting(quoteText, role)}
+            {cursor}
+          </div>
+        );
+        continue;
+      }
+
+      // 4. Bullet list items starting with - or * or •
+      if (line.startsWith('-') || line.startsWith('*') || line.startsWith('•')) {
+        const itemText = line.replace(/^[-*•]\s*/, '');
+        elements.push(
+          <div 
+            key={`item-${i}`} 
+            className="flex gap-2.5 items-start my-2 pl-1.5"
+          >
+            <div className="relative mt-1.5 shrink-0 flex items-center justify-center w-2.5 h-2.5">
+              <span className="absolute w-1.5 h-1.5 rotate-45 bg-mystic-gold/60 rounded-[1px] animate-pulse" />
+            </div>
+            <span className="text-gray-300 font-light leading-relaxed text-[13px] tracking-wide flex-grow">
+              {parseInlineFormatting(itemText, role)}
+              {cursor}
+            </span>
+          </div>
+        );
+        continue;
+      }
+
+      // 5. Standard line/paragraph
+      elements.push(
+        <p 
+          key={`para-${i}`} 
+          className="text-[13px] font-light leading-relaxed text-gray-200 mb-2.5 tracking-wide"
+        >
+          {parseInlineFormatting(line, role)}
+          {cursor}
+        </p>
+      );
+    }
+
+    return <div className="space-y-1.5">{elements}</div>;
+  };
+
   return (
     <div className="w-full h-full flex flex-col">
       <AnimatePresence mode="wait">
@@ -294,23 +424,19 @@ const ChatInterface = ({
                       transition={{ duration: 0.4, ease: 'easeOut' }}
                       className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                     >
-                      <div className={`p-4 md:p-5 rounded-[1.8rem] max-w-[90%] shadow-2xl relative transition-all border ${
+                      <div className={`p-5 md:p-6 rounded-[2rem] max-w-[90%] shadow-2xl relative transition-all border ${
                         msg.role === 'user' 
-                          ? 'bg-gradient-to-br from-mystic-gold/20 via-mystic-gold/5 to-transparent border-mystic-gold/30 rounded-tr-none text-mystic-gold' 
-                          : 'bg-mystic-dark/50 border-white/5 rounded-tl-none text-gray-200'
+                          ? 'bg-gradient-to-br from-mystic-gold/20 via-mystic-gold/5 to-transparent border-mystic-gold/30 rounded-tr-none text-mystic-gold shadow-[0_10px_35px_rgba(212,175,55,0.05)]' 
+                          : 'bg-mystic-dark/65 border-mystic-gold/15 rounded-tl-none text-gray-200 shadow-[0_20px_45px_rgba(0,0,0,0.5)] backdrop-blur-md'
                       }`}>
-                        <div className="text-[9px] font-bold mb-1.5 uppercase tracking-[0.2em] opacity-40">
+                        <div className="text-[9px] font-bold mb-2 uppercase tracking-[0.2em] opacity-40">
                           {msg.role === 'user' ? 'Bạn' : 'Bậc Thầy'}
                         </div>
-                        <div className="prose prose-invert max-w-none text-sm font-light leading-relaxed whitespace-pre-wrap selection:bg-mystic-gold selection:text-mystic-dark">
-                          {msg.text.replace(/\*\*/g, '')}
-                          {msg.role === 'ai' && idx === chatHistory.length - 1 && aiStatus === 'streaming' && (
-                            <motion.span 
-                              className="inline-block w-2 h-2 ml-2 bg-mystic-gold shadow-[0_0_8px_rgba(212,175,55,0.9)] align-middle"
-                              style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }}
-                              animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.3, 0.8], rotate: [0, 90, 180] }} 
-                              transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-                            />
+                        <div className="selection:bg-mystic-gold selection:text-mystic-dark">
+                          {renderMessageContent(
+                            msg.text, 
+                            msg.role, 
+                            msg.role === 'ai' && idx === chatHistory.length - 1 && aiStatus === 'streaming'
                           )}
                         </div>
                       </div>

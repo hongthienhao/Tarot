@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Activity, ChevronLeft, RefreshCw, BookOpen, Hash, BrainCircuit, Star, Shuffle, Save } from 'lucide-react';
 import apiClient from '../api/client';
 import useAuthStore from '../store/useAuthStore';
+import useSoundStore, { playSFX } from '../store/useSoundStore';
 import TarotCard from './TarotCard';
 import CardFan from './CardFan';
 import ChatInterface from './ChatInterface';
@@ -279,6 +280,7 @@ const SpreadSelector = () => {
 
   const handleConfirmShuffle = async () => {
     setIsShuffling(true);
+    playSFX('shuffle');
     document.body.classList.add('cursor-dealing');
     try {
       const [response] = await Promise.all([
@@ -323,6 +325,7 @@ const SpreadSelector = () => {
   const handleSelectFromFan = (index) => {
     if (availableCards.length === 0) return;
     
+    playSFX('draw');
     const nextCard = availableCards[0];
     const newAvailable = availableCards.slice(1);
     

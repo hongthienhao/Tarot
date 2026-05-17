@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Layout/Navbar';
 import Footer from './components/Layout/Footer';
@@ -8,8 +8,36 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HistoryPage from './pages/HistoryPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import AudioController from './components/Layout/AudioController';
+import useSoundStore, { initAudioContext } from './store/useSoundStore';
 
 function App() {
+  const initSound = useSoundStore(state => state.initSound);
+
+  useEffect(() => {
+    // Initial sound parameters setup
+    initSound();
+
+    // Elegant global gesture listener to resume AudioContext (Autoplay policies)
+    const handleGesture = () => {
+      initAudioContext();
+      // Remove listeners once context is successfully initialized
+      window.removeEventListener('click', handleGesture);
+      window.removeEventListener('touchstart', handleGesture);
+      window.removeEventListener('keydown', handleGesture);
+    };
+
+    window.addEventListener('click', handleGesture);
+    window.addEventListener('touchstart', handleGesture);
+    window.addEventListener('keydown', handleGesture);
+
+    return () => {
+      window.removeEventListener('click', handleGesture);
+      window.removeEventListener('touchstart', handleGesture);
+      window.removeEventListener('keydown', handleGesture);
+    };
+  }, [initSound]);
+
   return (
     <div className="relative min-h-screen text-white selection:bg-mystic-gold selection:text-mystic-dark">
       <Background />
@@ -28,8 +56,12 @@ function App() {
       </main>
 
       <Footer />
+      
+      {/* Floating global Audio Controller Capsule */}
+      <AudioController />
     </div>
   );
 }
 
 export default App;
+

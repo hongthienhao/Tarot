@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { playSFX } from '../store/useSoundStore';
 
 // Rune symbols for the float-up particle effect (Phase 3)
 const RUNE_CHARS = ['✦', '✧', '⚝', '✴', '★', '✶', '⋆', '✺'];
@@ -32,6 +33,7 @@ const TarotCard = ({ card, index, onFlip, isRevealed: controlledIsRevealed, isSe
 
   const handleFlip = () => {
     if (!isFlipped && isSelectable) {
+      playSFX('flip');
       if (controlledIsRevealed === undefined) setLocalIsFlipped(true);
       if (onFlip) onFlip(card);
     }

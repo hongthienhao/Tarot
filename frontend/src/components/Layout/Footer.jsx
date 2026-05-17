@@ -50,6 +50,24 @@ const Footer = () => {
         </div>
       </div>
       
+      {/* Elegantly styled Vietnamese Disclaimer Section */}
+      <div className="max-w-4xl mx-auto mb-12 p-6 md:p-8 glass border border-mystic-gold/15 rounded-3xl relative overflow-hidden bg-gradient-to-br from-mystic-purple/20 via-mystic-dark/40 to-transparent shadow-[0_15px_35px_rgba(0,0,0,0.4)] backdrop-blur-md">
+        <div className="absolute -top-10 -right-10 w-24 h-24 bg-mystic-gold/5 rounded-full blur-2xl pointer-events-none" />
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6">
+          <div className="p-3 bg-mystic-gold/10 rounded-2xl text-mystic-gold border border-mystic-gold/20 shrink-0">
+            <Sparkles className="w-5 h-5 animate-pulse" />
+          </div>
+          <div className="text-center md:text-left">
+            <h5 className="text-[11px] font-serif uppercase tracking-[0.25em] gold-text font-bold mb-2">
+              Tuyên Bố Miễn Trừ Trách Nhiệm
+            </h5>
+            <p className="text-[11px] md:text-xs text-gray-400 font-light leading-relaxed tracking-wide italic">
+              Trải bài Tarot tại <span className="text-mystic-gold/80 font-medium">Tarot Mystic</span> chỉ mang tính chất tham khảo, chiêm nghiệm và định hướng tinh thần. Chúng tôi không đưa ra các quyết định thay thế cho tư vấn pháp lý, y tế, tài chính hoặc tâm lý chuyên nghiệp. Hãy luôn tin tưởng vào trực giác và ý chí tự do của chính bạn trên hành trình cuộc đời.
+            </p>
+          </div>
+        </div>
+      </div>
+      
       <div className="max-w-7xl mx-auto pt-8 border-t border-white/5 text-center">
         <p className="text-[10px] uppercase tracking-[0.4em] text-gray-600">
           &copy; 2026 Tarot Mystic Space. All Rights Reserved. Crafted for the soul.
@@ -60,3 +78,4 @@ const Footer = () => {
 };
 
 export default Footer;
+
