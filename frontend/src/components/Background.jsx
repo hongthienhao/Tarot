@@ -1,6 +1,18 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 const Background = () => {
+  // Pre-calculate stable star properties to prevent visual jumping on re-renders
+  const stars = useMemo(() => {
+    return Array.from({ length: 50 }).map((_, i) => ({
+      id: i,
+      top: `${Math.random() * 100}%`,
+      left: `${Math.random() * 100}%`,
+      size: Math.random() * 2 + 1,
+      delay: Math.random() * 5,
+      duration: Math.random() * 3 + 2,
+    }));
+  }, []);
+
   return (
     <div className="fixed inset-0 z-[-1] overflow-hidden bg-mystic-dark">
       {/* Deep Space Gradients */}
@@ -9,20 +21,20 @@ const Background = () => {
       
       {/* Center Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(26,11,46,0.3)_0%,transparent_70%)]" />
-
+      
       {/* Stars/Particles */}
       <div className="absolute inset-0 opacity-30">
-        {[...Array(50)].map((_, i) => (
+        {stars.map((star) => (
           <div
-            key={i}
+            key={star.id}
             className="absolute rounded-full bg-white animate-twinkle"
             style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              width: `${Math.random() * 2 + 1}px`,
-              height: `${Math.random() * 2 + 1}px`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${Math.random() * 3 + 2}s`,
+              top: star.top,
+              left: star.left,
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              animationDelay: `${star.delay}s`,
+              animationDuration: `${star.duration}s`,
             }}
           />
         ))}

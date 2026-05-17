@@ -43,6 +43,9 @@ app.use('/api', limiter);
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '10kb' }));
 
+// Serve static files from 'public' directory
+app.use(express.static('public'));
+
 // Data sanitization could be added here (e.g., mongoSanitize, xss)
 
 // Implement CORS with specific, secure origins in production

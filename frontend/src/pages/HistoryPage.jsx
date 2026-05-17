@@ -23,6 +23,82 @@ import apiClient from '../api/client';
 import useAuthStore from '../store/useAuthStore';
 import ChatInterface from '../components/ChatInterface';
 
+const parseInlineFormatting = (text) => {
+  const parts = text.split(/\*\*/g);
+  return parts.map((part, index) => {
+    if (index % 2 === 1) {
+      return (
+        <strong key={index} className="font-bold tracking-wider text-mystic-gold font-serif">
+          {part}
+        </strong>
+      );
+    }
+    return part;
+  });
+};
+
+const renderInterpretationContent = (text) => {
+  if (!text) return null;
+  const lines = text.split('\n');
+  const elements = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) {
+      elements.push(<div key={`space-${i}`} className="h-3" />);
+      continue;
+    }
+
+    // Headers (### or ## or #)
+    if (line.startsWith('###') || line.startsWith('##') || line.startsWith('#')) {
+      const headerText = line.replace(/^#+\s*/, '');
+      elements.push(
+        <h4 key={`header-${i}`} className="text-sm md:text-md font-serif font-bold tracking-widest uppercase gold-text mt-6 mb-4 flex items-center gap-2 border-b border-mystic-gold/15 pb-2 w-full">
+          <Sparkles className="w-4 h-4 text-mystic-gold shrink-0 animate-pulse-slow" />
+          <span className="flex-1">{parseInlineFormatting(headerText)}</span>
+        </h4>
+      );
+      continue;
+    }
+
+    // Blockquotes (>)
+    if (line.startsWith('>')) {
+      const quoteText = line.replace(/^>\s*/, '');
+      elements.push(
+        <div key={`quote-${i}`} className="my-4 p-5 rounded-2xl border-l-2 border-mystic-gold/45 bg-mystic-gold/5 italic text-mystic-gold/90 font-light text-[12px] md:text-sm leading-relaxed backdrop-blur-sm shadow-[inset_0_2px_8px_rgba(212,175,55,0.02)]">
+          {parseInlineFormatting(quoteText)}
+        </div>
+      );
+      continue;
+    }
+
+    // Bullet lists (- or * or •)
+    if (line.startsWith('-') || line.startsWith('*') || line.startsWith('•')) {
+      const itemText = line.replace(/^[-*•]\s*/, '');
+      elements.push(
+        <div key={`item-${i}`} className="flex gap-2.5 items-start my-2.5 pl-2">
+          <div className="relative mt-2 shrink-0 flex items-center justify-center w-2 h-2">
+            <span className="absolute w-1.5 h-1.5 rotate-45 bg-mystic-gold/60 rounded-[1px] animate-pulse" />
+          </div>
+          <span className="text-gray-300 font-light leading-relaxed text-[14px] md:text-[15px] tracking-wide flex-grow">
+            {parseInlineFormatting(itemText)}
+          </span>
+        </div>
+      );
+      continue;
+    }
+
+    // Standard paragraph
+    elements.push(
+      <p key={`para-${i}`} className="text-[14px] md:text-[16px] font-light leading-relaxed text-gray-200 mb-3 tracking-wide">
+        {parseInlineFormatting(line)}
+      </p>
+    );
+  }
+
+  return <div className="space-y-2">{elements}</div>;
+};
+
 const HistoryPage = () => {
   const [readings, setReadings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -222,12 +298,14 @@ const HistoryPage = () => {
     }).format(date);
   };
 
-  const getShortDate = (dateString) => {
+  const getDay = (dateString) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('vi-VN', {
-      month: 'short',
-      day: 'numeric',
-    }).format(date);
+    return date.getDate();
+  };
+
+  const getMonth = (dateString) => {
+    const date = new Date(dateString);
+    return `T${date.getMonth() + 1}`;
   };
 
   const handleDeleteReading = async (e, id) => {
@@ -429,9 +507,9 @@ const HistoryPage = () => {
 
                 {/* Card Header: Date & Badge */}
                 <div className="flex justify-between items-start mb-10">
-                  <div className="w-12 h-12 rounded-2xl bg-mystic-dark/60 border border-white/10 flex flex-col items-center justify-center">
-                    <span className="text-[10px] text-mystic-gold/60 font-bold uppercase">{getShortDate(reading.createdAt).split(' ')[1]}</span>
-                    <span className="text-lg font-serif text-white leading-none">{getShortDate(reading.createdAt).split(' ')[0]}</span>
+                  <div className="w-12 h-12 rounded-2xl bg-mystic-dark/60 border border-white/10 flex flex-col items-center justify-center animate-pulse-slow">
+                    <span className="text-[10px] text-mystic-gold/60 font-bold uppercase">{getMonth(reading.createdAt)}</span>
+                    <span className="text-lg font-serif text-white leading-none">{getDay(reading.createdAt)}</span>
                   </div>
                   <div className="flex gap-2 pr-10">
                     <div className="px-3 py-1 rounded-full bg-mystic-purple/10 border border-mystic-purple/20 text-[8px] font-bold uppercase tracking-widest text-mystic-gold/80">
@@ -575,8 +653,8 @@ const HistoryPage = () => {
                       
                       <div className="prose prose-invert prose-gold max-w-none">
                         {selectedReading.interpretation ? (
-                          <div className="text-lg md:text-xl text-gray-300 leading-relaxed font-light whitespace-pre-wrap selection:bg-mystic-gold selection:text-mystic-dark">
-                            {selectedReading.interpretation.replace(/\*\*/g, '')}
+                          <div className="selection:bg-mystic-gold selection:text-mystic-dark">
+                            {renderInterpretationContent(selectedReading.interpretation)}
                           </div>
                         ) : (
                           <div className="text-gray-500 italic text-center py-20">

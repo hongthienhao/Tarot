@@ -175,3 +175,25 @@ export const generateReading = catchAsync(async (req, res, next) => {
     res.end();
   }
 });
+
+/**
+ * Fetch all Tarot cards in a highly structured order (Major Arcana first, followed by Minor Arcana suits)
+ */
+export const getAllCards = catchAsync(async (req, res, next) => {
+  const cards = await prisma.tarotCard.findMany({
+    orderBy: [
+      { arcana: 'asc' },
+      { suit: 'asc' },
+      { number: 'asc' }
+    ]
+  });
+
+  res.status(200).json({
+    status: 'success',
+    results: cards.length,
+    data: {
+      cards
+    }
+  });
+});
+

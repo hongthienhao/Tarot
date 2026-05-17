@@ -3,6 +3,13 @@ import { motion } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 
 const Hero = () => {
+  const scrollToSpreads = () => {
+    const element = document.getElementById('spreads');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center pt-20 px-6 overflow-hidden">
       {/* Cinematic Lighting Overlay */}
@@ -46,16 +53,18 @@ const Hero = () => {
             className="flex flex-col sm:flex-row gap-8 justify-center items-center"
           >
             <motion.button 
+              onClick={scrollToSpreads}
               whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(212,175,55,0.4)' }}
               whileTap={{ scale: 0.95 }}
-              className="px-12 py-5 bg-mystic-gold text-mystic-dark font-bold uppercase tracking-[0.2em] text-sm rounded-full transition-all"
+              className="px-12 py-5 bg-mystic-gold text-mystic-dark font-bold uppercase tracking-[0.2em] text-sm rounded-full transition-all cursor-pointer"
             >
               Bắt đầu hành trình
             </motion.button>
             <motion.button 
+              onClick={scrollToSpreads}
               whileHover={{ scale: 1.05, backgroundColor: 'rgba(212,175,55,0.05)' }}
               whileTap={{ scale: 0.95 }}
-              className="px-12 py-5 border border-mystic-gold/30 text-mystic-gold font-bold uppercase tracking-[0.2em] text-sm rounded-full transition-all"
+              className="px-12 py-5 border border-mystic-gold/30 text-mystic-gold font-bold uppercase tracking-[0.2em] text-sm rounded-full transition-all cursor-pointer"
             >
               Khám phá bí ẩn
             </motion.button>
@@ -65,10 +74,11 @@ const Hero = () => {
 
       {/* Scroll Indicator */}
       <motion.div 
+        onClick={scrollToSpreads}
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.5 }}
         transition={{ delay: 2, duration: 1 }}
-        className="absolute bottom-12 flex flex-col items-center gap-4"
+        className="absolute bottom-12 flex flex-col items-center gap-4 cursor-pointer hover:opacity-100 transition-opacity"
       >
         <span className="text-[10px] uppercase tracking-[0.4em] text-mystic-gold/50">Cuộn xuống</span>
         <motion.div 
