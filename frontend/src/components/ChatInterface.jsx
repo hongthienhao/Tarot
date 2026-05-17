@@ -13,7 +13,8 @@ import {
   Compass,
   Layers,
   Save,
-  Check
+  Check,
+  Copy
 } from 'lucide-react';
 
 /**
