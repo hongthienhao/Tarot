@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import apiClient from '../api/client';
 import useAuthStore from '../store/useAuthStore';
+import ChatInterface from '../components/ChatInterface';
 
 const HistoryPage = () => {
   const [readings, setReadings] = useState([]);
@@ -587,89 +588,17 @@ const HistoryPage = () => {
                     
                     {/* Cuộc Hội Thoại Tâm Giao (Contextual AI Chat) */}
                     <div className="mt-20 border-t border-mystic-gold/10 pt-16">
-                      <div className="flex items-center justify-between mb-8">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-mystic-gold/10 border border-mystic-gold/20 flex items-center justify-center text-mystic-gold">
-                            <BrainCircuit className="w-6 h-6 animate-pulse" />
-                          </div>
-                          <div>
-                            <h4 className="text-2xl font-serif gold-text tracking-wide">Cuộc Hội Thoại Tâm Giao</h4>
-                            <p className="text-xs text-gray-400 font-light mt-0.5">Trò chuyện trực tiếp cùng Bậc thầy Tarot để làm rõ thêm các thông điệp</p>
-                          </div>
-                        </div>
-                        {aiStatus === 'streaming' && (
-                          <div className="flex gap-1 bg-mystic-gold/10 px-3 py-1 rounded-full border border-mystic-gold/20 text-[9px] font-bold tracking-widest text-mystic-gold uppercase animate-pulse">
-                            BẬC THẦY ĐANG SUY NGẪM...
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="glass p-6 md:p-8 rounded-[2.5rem] border-white/5 bg-gradient-to-b from-mystic-gold/5 to-transparent flex flex-col max-h-[550px] shadow-2xl relative">
-                        {/* Messages Area */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6 max-h-[380px] min-h-[120px] mb-6">
-                          {chatHistory.length === 0 ? (
-                            <div className="text-center py-10 flex flex-col items-center justify-center">
-                              <p className="text-gray-400 text-sm font-light leading-relaxed max-w-md">
-                                Hãy chia sẻ những cảm nhận hoặc đặt câu hỏi tiếp nối của bạn về các lá bài này. Tri kỷ linh hồn luôn sẵn lòng lắng nghe và chia sẻ cùng bạn.
-                              </p>
-                            </div>
-                          ) : (
-                            chatHistory.map((msg, idx) => (
-                              <motion.div 
-                                key={idx} 
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
-                              >
-                                <div className={`p-4 rounded-[1.5rem] max-w-[85%] md:max-w-[80%] shadow-xl ${
-                                  msg.role === 'user' 
-                                    ? 'bg-gradient-to-br from-mystic-gold/25 to-mystic-gold/5 border-mystic-gold/30 border rounded-tr-none text-mystic-gold' 
-                                    : 'bg-mystic-dark/50 border-white/5 border rounded-tl-none text-gray-200'
-                                }`}>
-                                  <div className="text-[9px] font-bold mb-1 uppercase tracking-widest opacity-50">
-                                    {msg.role === 'user' ? 'Bạn' : 'Bậc Thầy'}
-                                  </div>
-                                  <div className="prose prose-invert max-w-none text-sm font-light leading-relaxed whitespace-pre-wrap">
-                                    {msg.text.replace(/\*\*/g, '')}
-                                    {msg.role === 'ai' && idx === chatHistory.length - 1 && aiStatus === 'streaming' && (
-                                      <motion.span 
-                                        className="inline-block w-2 h-2 ml-2 bg-mystic-gold shadow-[0_0_10px_rgba(212,175,55,0.8)] align-middle"
-                                        style={{ clipPath: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)' }}
-                                        animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.3, 0.8], rotate: [0, 90, 180] }} 
-                                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                                      />
-                                    )}
-                                  </div>
-                                </div>
-                              </motion.div>
-                            ))
-                          )}
-                          <div ref={chatEndRef} />
-                        </div>
-
-                        {/* Input Area */}
-                        <div className="relative group shrink-0">
-                          <input
-                            type="text"
-                            placeholder="Gửi câu hỏi tiếp nối về trải bài của bạn... (ví dụ: 'Tại sao lá The Fool xuất hiện?')"
-                            value={chatInput}
-                            onChange={e => setChatInput(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter' && chatInput.trim()) {
-                                handleSendHistoryQuestion(chatInput);
-                              }
-                            }}
-                            disabled={aiStatus === 'streaming'}
-                            className="w-full pl-6 pr-14 py-4 bg-mystic-dark/70 border border-white/10 rounded-2xl text-white placeholder:text-gray-600 focus:outline-none focus:border-mystic-gold/50 focus:bg-mystic-dark/90 transition-all text-sm font-light shadow-inner disabled:opacity-50"
-                          />
-                          <button 
-                            onClick={() => { if (chatInput.trim()) handleSendHistoryQuestion(chatInput); }}
-                            disabled={aiStatus === 'streaming' || !chatInput.trim()}
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-mystic-gold/10 text-mystic-gold/50 hover:text-mystic-gold disabled:opacity-20 hover:bg-mystic-gold/20 transition-all cursor-pointer"
-                          >
-                            <Sparkles size={16} />
-                          </button>
-                        </div>
+                      <div className="h-[550px]">
+                        <ChatInterface
+                          chatHistory={chatHistory}
+                          aiStatus={aiStatus}
+                          chatInput={chatInput}
+                          setChatInput={setChatInput}
+                          onSendMessage={handleSendHistoryQuestion}
+                          drawnCards={selectedReading.readingCards}
+                          isHistoryMode={true}
+                          autoSavedText="Đã lưu vào Biên niên sử"
+                        />
                       </div>
                     </div>
                   </div>
