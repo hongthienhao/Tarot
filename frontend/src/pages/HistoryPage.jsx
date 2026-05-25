@@ -22,6 +22,8 @@ import {
 import apiClient from '../api/client';
 import useAuthStore from '../store/useAuthStore';
 import ChatInterface from '../components/ChatInterface';
+import SoulAnalytics from '../components/SoulAnalytics';
+
 
 const parseInlineFormatting = (text) => {
   const parts = text.split(/\*\*/g);
@@ -107,6 +109,8 @@ const HistoryPage = () => {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [notification, setNotification] = useState(null);
+  const [activeTab, setActiveTab] = useState('CHRONICLES'); // 'CHRONICLES' | 'ANALYTICS'
+
 
   // States for Interactive Soul Chat
   const [chatInput, setChatInput] = useState('');
@@ -435,125 +439,183 @@ const HistoryPage = () => {
             </p>
           </motion.div>
           
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[200%] bg-mystic-purple/5 blur-[120px] rounded-full -z-10 pointer-events-none" />
         </header>
 
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-300 p-6 rounded-2xl mb-8 text-center glass">
-            {error}
+        {/* Tab Selection Switcher */}
+        {readings.length > 0 && (
+          <div className="flex justify-center mb-16 relative z-20">
+            <div className="flex p-1 bg-mystic-dark/60 border border-mystic-gold/20 rounded-full">
+              <button 
+                onClick={() => {
+                  setActiveTab('CHRONICLES');
+                  setIsSelectionMode(false);
+                }} 
+                className={`flex items-center gap-2 px-8 py-3.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all cursor-pointer ${
+                  activeTab === 'CHRONICLES' 
+                    ? 'bg-mystic-gold text-mystic-dark shadow-[0_0_15px_rgba(212,175,55,0.3)]' 
+                    : 'text-gray-400 hover:text-mystic-gold'
+                }`}
+              >
+                <ScrollText size={14} />
+                <span>Biên Niên Sử</span>
+              </button>
+              <button 
+                onClick={() => {
+                  setActiveTab('ANALYTICS');
+                  setIsSelectionMode(false);
+                }} 
+                className={`flex items-center gap-2 px-8 py-3.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] transition-all cursor-pointer ${
+                  activeTab === 'ANALYTICS' 
+                    ? 'bg-mystic-gold text-mystic-dark shadow-[0_0_15px_rgba(212,175,55,0.3)]' 
+                    : 'text-gray-400 hover:text-mystic-gold'
+                }`}
+              >
+                <BrainCircuit size={14} />
+                <span>Thấu Thị Tâm Hồn</span>
+              </button>
+            </div>
           </div>
         )}
 
-        {!error && readings.length === 0 && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="glass border-white/5 p-20 rounded-[3rem] text-center max-w-3xl mx-auto"
-          >
-            <ScrollText className="w-20 h-20 text-white/10 mx-auto mb-8" />
-            <h3 className="text-3xl font-serif text-white mb-4">Trang Sách Trống</h3>
-            <p className="text-gray-400 font-light text-lg mb-10">Bạn chưa bắt đầu viết nên chương đầu tiên trong biên niên sử của mình.</p>
-            <button className="px-10 py-4 bg-mystic-gold rounded-full text-mystic-dark font-bold uppercase tracking-widest text-xs transition-transform hover:scale-105 active:scale-95">
-              Bắt đầu trải bài ngay
-            </button>
-          </motion.div>
-        )}
-
-        {/* Grid View of Readings */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-          {readings.map((reading, index) => (
+        <AnimatePresence mode="wait">
+          {activeTab === 'ANALYTICS' ? (
             <motion.div
-              key={reading.id}
-              initial={{ opacity: 0, y: 30 }}
+              key="analytics"
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={(e) => {
-                if (isSelectionMode) {
-                  toggleSelection(e, reading.id);
-                } else {
-                  setSelectedReading(reading);
-                }
-              }}
-              className="group relative cursor-pointer"
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.35 }}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-mystic-gold/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem] pointer-events-none" />
-              
-              <div className={`glass p-8 rounded-[2rem] border-white/5 transition-all duration-500 h-full flex flex-col relative z-10 ${
-                isSelectionMode && selectedIds.has(reading.id) 
-                  ? 'border-mystic-gold/50 bg-mystic-gold/5 shadow-[0_0_30px_rgba(212,175,55,0.1)]' 
-                  : 'group-hover:border-mystic-gold/30'
-              }`}>
-                {/* Checkbox (Selection Mode) or Delete Button (Normal Mode) */}
-                {isSelectionMode ? (
-                  <div
-                    onClick={(e) => toggleSelection(e, reading.id)}
-                    className={`absolute top-6 right-6 z-30 p-2 rounded-xl border transition-all flex items-center justify-center cursor-pointer ${
-                      selectedIds.has(reading.id)
-                        ? 'bg-mystic-gold border-mystic-gold text-mystic-dark shadow-[0_0_15px_rgba(212,175,55,0.4)]'
-                        : 'bg-mystic-dark/60 border-white/20 text-transparent hover:border-mystic-gold/50'
-                    }`}
-                  >
-                    <Check className="w-4 h-4" />
-                  </div>
-                ) : (
-                  <button
-                    onClick={(e) => handleDeleteReading(e, reading.id)}
-                    className="absolute top-6 right-6 z-30 p-2 rounded-full bg-mystic-dark/40 border border-white/10 text-gray-500 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all opacity-0 group-hover:opacity-100"
-                    title="Xóa bản ghi"
-                  >
-                    <Trash2 size={14} />
+              <SoulAnalytics readings={readings} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="chronicles"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.35 }}
+            >
+              {error && (
+                <div className="bg-red-500/10 border border-red-500/30 text-red-300 p-6 rounded-2xl mb-8 text-center glass">
+                  {error}
+                </div>
+              )}
+
+              {!error && readings.length === 0 && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="glass border-white/5 p-20 rounded-[3rem] text-center max-w-3xl mx-auto"
+                >
+                  <ScrollText className="w-20 h-20 text-white/10 mx-auto mb-8" />
+                  <h3 className="text-3xl font-serif text-white mb-4">Trang Sách Trống</h3>
+                  <p className="text-gray-400 font-light text-lg mb-10">Bạn chưa bắt đầu viết nên chương đầu tiên trong biên niên sử của mình.</p>
+                  <button className="px-10 py-4 bg-mystic-gold rounded-full text-mystic-dark font-bold uppercase tracking-widest text-xs transition-transform hover:scale-105 active:scale-95">
+                    Bắt đầu trải bài ngay
                   </button>
-                )}
+                </motion.div>
+              )}
 
-                {/* Card Header: Date & Badge */}
-                <div className="flex justify-between items-start mb-10">
-                  <div className="w-12 h-12 rounded-2xl bg-mystic-dark/60 border border-white/10 flex flex-col items-center justify-center animate-pulse-slow">
-                    <span className="text-[10px] text-mystic-gold/60 font-bold uppercase">{getMonth(reading.createdAt)}</span>
-                    <span className="text-lg font-serif text-white leading-none">{getDay(reading.createdAt)}</span>
-                  </div>
-                  <div className="flex gap-2 pr-10">
-                    <div className="px-3 py-1 rounded-full bg-mystic-purple/10 border border-mystic-purple/20 text-[8px] font-bold uppercase tracking-widest text-mystic-gold/80">
-                      {reading.readingCards.length} Cards
-                    </div>
-                  </div>
-                </div>
+              {/* Grid View of Readings */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                {readings.map((reading, index) => (
+                  <motion.div
+                    key={reading.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={(e) => {
+                      if (isSelectionMode) {
+                        toggleSelection(e, reading.id);
+                      } else {
+                        setSelectedReading(reading);
+                      }
+                    }}
+                    className="group relative cursor-pointer"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-mystic-gold/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-[2rem] pointer-events-none" />
+                    
+                    <div className={`glass p-8 rounded-[2rem] border-white/5 transition-all duration-500 h-full flex flex-col relative z-10 ${
+                      isSelectionMode && selectedIds.has(reading.id) 
+                        ? 'border-mystic-gold/50 bg-mystic-gold/5 shadow-[0_0_30px_rgba(212,175,55,0.1)]' 
+                        : 'group-hover:border-mystic-gold/30'
+                    }`}>
+                      {/* Checkbox (Selection Mode) or Delete Button (Normal Mode) */}
+                      {isSelectionMode ? (
+                        <div
+                          onClick={(e) => toggleSelection(e, reading.id)}
+                          className={`absolute top-6 right-6 z-30 p-2 rounded-xl border transition-all flex items-center justify-center cursor-pointer ${
+                            selectedIds.has(reading.id)
+                              ? 'bg-mystic-gold border-mystic-gold text-mystic-dark shadow-[0_0_15px_rgba(212,175,55,0.4)]'
+                              : 'bg-mystic-dark/60 border-white/20 text-transparent hover:border-mystic-gold/50'
+                          }`}
+                        >
+                          <Check className="w-4 h-4" />
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => handleDeleteReading(e, reading.id)}
+                          className="absolute top-6 right-6 z-30 p-2 rounded-full bg-mystic-dark/40 border border-white/10 text-gray-500 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all opacity-0 group-hover:opacity-100"
+                          title="Xóa bản ghi"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
 
-                {/* Card Content: Title & Icons */}
-                <h3 className="text-xl font-serif text-white mb-4 group-hover:text-mystic-gold transition-colors">
-                  {reading.spreadName || `Trải bài ${reading.readingCards.length} lá`}
-                </h3>
-                
-                {/* Visual Preview of cards */}
-                <div className="flex -space-x-4 mb-8">
-                  {reading.readingCards.slice(0, 5).map((rc, idx) => (
-                    <div 
-                      key={rc.id} 
-                      className="w-10 h-14 rounded-md border border-mystic-gold/20 overflow-hidden shadow-lg transform group-hover:-translate-y-2 transition-transform duration-300"
-                      style={{ transitionDelay: `${idx * 50}ms` }}
-                    >
-                      <img src={rc.card.imagePath} className="w-full h-full object-cover" alt="" />
-                    </div>
-                  ))}
-                  {reading.readingCards.length > 5 && (
-                    <div className="w-10 h-14 rounded-md bg-mystic-dark/80 border border-white/10 flex items-center justify-center text-[10px] text-mystic-gold">
-                      +{reading.readingCards.length - 5}
-                    </div>
-                  )}
-                </div>
+                      {/* Card Header: Date & Badge */}
+                      <div className="flex justify-between items-start mb-10">
+                        <div className="w-12 h-12 rounded-2xl bg-mystic-dark/60 border border-white/10 flex flex-col items-center justify-center animate-pulse-slow">
+                          <span className="text-[10px] text-mystic-gold/60 font-bold uppercase">{getMonth(reading.createdAt)}</span>
+                          <span className="text-lg font-serif text-white leading-none">{getDay(reading.createdAt)}</span>
+                        </div>
+                        <div className="flex gap-2 pr-10">
+                          <div className="px-3 py-1 rounded-full bg-mystic-purple/10 border border-mystic-purple/20 text-[8px] font-bold uppercase tracking-widest text-mystic-gold/80">
+                            {reading.readingCards.length} Cards
+                          </div>
+                        </div>
+                      </div>
 
-                <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span className="text-[10px] font-medium tracking-wider">
-                      {new Date(reading.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-mystic-gold/40 group-hover:text-mystic-gold group-hover:translate-x-1 transition-all" />
-                </div>
+                      {/* Card Content: Title & Icons */}
+                      <h3 className="text-xl font-serif text-white mb-4 group-hover:text-mystic-gold transition-colors">
+                        {reading.spreadName || `Trải bài ${reading.readingCards.length} lá`}
+                      </h3>
+                      
+                      {/* Visual Preview of cards */}
+                      <div className="flex -space-x-4 mb-8">
+                        {reading.readingCards.slice(0, 5).map((rc, idx) => (
+                          <div 
+                            key={rc.id} 
+                            className="w-10 h-14 rounded-md border border-mystic-gold/20 overflow-hidden shadow-lg transform group-hover:-translate-y-2 transition-transform duration-300"
+                            style={{ transitionDelay: `${idx * 50}ms` }}
+                          >
+                            <img src={rc.card.imagePath} className="w-full h-full object-cover" alt="" />
+                          </div>
+                        ))}
+                        {reading.readingCards.length > 5 && (
+                          <div className="w-10 h-14 rounded-md bg-mystic-dark/80 border border-white/10 flex items-center justify-center text-[10px] text-mystic-gold">
+                            +{reading.readingCards.length - 5}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-gray-500">
+                          <Clock className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-medium tracking-wider">
+                            {new Date(reading.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-mystic-gold/40 group-hover:text-mystic-gold group-hover:translate-x-1 transition-all" />
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
-          ))}
-        </div>
+          )}
+        </AnimatePresence>
+
       </div>
 
       {/* Full Reading Detail Modal */}
