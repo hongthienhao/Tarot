@@ -17,10 +17,13 @@ services:
     container_name: mystic-tarot-api
     ports:
       - "3001:3000"
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql://tarot_user:tarot_password@db:5432/tarot_db?schema=public
       - PORT=3000
       - NODE_ENV=development
+      - ALLOWED_ORIGINS=http://localhost,http://localhost:80,http://127.0.0.1,http://127.0.0.1:80,http://localhost:3000,http://localhost:3001,http://localhost:5173
     depends_on:
       - db
 
