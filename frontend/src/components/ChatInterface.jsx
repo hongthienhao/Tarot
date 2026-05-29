@@ -70,8 +70,16 @@ const ChatInterface = ({
 
   // Auto scroll logic on new streaming/message events
   useEffect(() => {
-    if (chatEndRef.current) {
-      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const isStreaming = aiStatus === 'streaming';
+      
+      // If streaming, use instant scroll ('auto') to avoid jerkiness from animation interrupts
+      // Otherwise, use 'smooth' scroll for pleasant transitions
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: isStreaming ? 'auto' : 'smooth',
+      });
     }
   }, [chatHistory, aiStatus]);
 

@@ -222,6 +222,7 @@ const SpreadSelector = () => {
   const [selectedFanIndices, setSelectedFanIndices] = useState(new Set());
   const [isHoveringFan, setIsHoveringFan] = useState(false);
   const [currentReadingId, setCurrentReadingId] = useState(null);
+  const [isAutoFlipping, setIsAutoFlipping] = useState(false);
 
   const autoSaveReading = useCallback(async (cards, spreadInfo) => {
     if (!isAuthenticated) return;
@@ -346,6 +347,34 @@ const SpreadSelector = () => {
     setActiveCard(card);
   };
 
+  const handleAutoFlip = useCallback(() => {
+    if (isAutoFlipping || drawnCards.length === 0) return;
+    
+    const unflippedCards = drawnCards.filter(card => !revealedCardIds.has(card.id));
+    if (unflippedCards.length === 0) return;
+    
+    setIsAutoFlipping(true);
+    
+    let currentDelay = 0;
+    unflippedCards.forEach((card, index) => {
+      setTimeout(() => {
+        setRevealedCardIds(prev => {
+          const next = new Set(prev);
+          next.add(card.id);
+          return next;
+        });
+        setActiveCard(card);
+        playSFX('flip');
+        
+        if (index === unflippedCards.length - 1) {
+          setIsAutoFlipping(false);
+        }
+      }, currentDelay);
+      
+      currentDelay += 800;
+    });
+  }, [isAutoFlipping, drawnCards, revealedCardIds]);
+
   const handleReset = () => {
     setMode('select');
     setReadingResult(null);
@@ -359,6 +388,7 @@ const SpreadSelector = () => {
     setChatHistory([]);
     setAiStatus('idle');
     setCurrentReadingId(null);
+    setIsAutoFlipping(false);
   };
 
 
@@ -646,15 +676,27 @@ const SpreadSelector = () => {
               animate={{ opacity: 1 }}
               className="w-full"
             >
-              <div className="flex items-center justify-between mb-12">
-                <button onClick={handleReset} className="flex items-center gap-2 text-mystic-gold/60 hover:text-mystic-gold transition-colors uppercase tracking-widest text-xs font-bold">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12 border-b border-mystic-gold/10 pb-8">
+                <button onClick={handleReset} className="flex items-center gap-2 text-mystic-gold/60 hover:text-mystic-gold transition-colors uppercase tracking-widest text-xs font-bold self-start md:self-auto">
                   <ChevronLeft size={16} /> Quay lại
                 </button>
                 <div className="text-center">
                   <h2 className="text-3xl md:text-5xl font-serif gold-text mb-2">{readingResult?.spreadName}</h2>
                   <p className="text-gray-400 italic text-sm font-light">{readingResult?.description}</p>
                 </div>
-                <button onClick={() => handleStartDraw(targetQuantity)} className="p-3 border border-mystic-gold/20 rounded-full text-mystic-gold/40 hover:text-mystic-gold transition-all"><RefreshCw size={20} /></button>
+                <div className="flex items-center gap-3 self-end md:self-auto">
+                  {revealedCardIds.size < drawnCards.length && (
+                    <button
+                      onClick={handleAutoFlip}
+                      disabled={isAutoFlipping}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-mystic-gold/15 hover:bg-mystic-gold/25 border border-mystic-gold/30 rounded-full text-mystic-gold text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-[0_0_15px_rgba(212,175,55,0.05)] disabled:opacity-40"
+                    >
+                      <Sparkles className={`w-3.5 h-3.5 ${isAutoFlipping ? 'animate-pulse' : ''}`} />
+                      <span>{isAutoFlipping ? 'Đang lật...' : 'Tự động lật'}</span>
+                    </button>
+                  )}
+                  <button onClick={() => handleStartDraw(targetQuantity)} className="p-3 border border-mystic-gold/20 rounded-full text-mystic-gold/40 hover:text-mystic-gold transition-all" title="Rút lại bài"><RefreshCw size={20} /></button>
+                </div>
               </div>
 
               <div className="space-y-24">
@@ -662,21 +704,24 @@ const SpreadSelector = () => {
                 <div className="flex flex-col gap-16 items-center">
                   {cardRows.map((row, rowIndex) => (
                     <div key={rowIndex} className="flex flex-wrap justify-center gap-12 md:gap-20 w-full">
-                      {row.map((card, index) => (
-                        <div key={card.id} className="flex flex-col items-center gap-4">
-                           <div className="flex items-center gap-2 px-3 py-1 bg-mystic-dark/80 border border-mystic-gold/20 rounded-full text-mystic-gold/60 text-[9px] uppercase tracking-[0.2em] font-bold">
-                             <Hash size={10} /> <span>Lá bài #{index + (rowIndex * 4) + 1}</span>
-                           </div>
-                           <div className="w-[160px] md:w-[260px]">
-                             <TarotCard 
-                               card={card} 
-                               index={index} 
-                               isRevealed={revealedCardIds.has(card.id)}
-                               onFlip={handleFlip}
-                             />
-                           </div>
-                        </div>
-                      ))}
+                      {row.map((card, index) => {
+                        const flatIndex = drawnCards.findIndex(c => c.id === card.id);
+                        return (
+                          <div key={card.id} className="flex flex-col items-center gap-4">
+                             <div className="flex items-center gap-2 px-3 py-1 bg-mystic-dark/80 border border-mystic-gold/20 rounded-full text-mystic-gold/60 text-[9px] uppercase tracking-[0.2em] font-bold">
+                               <Hash size={10} /> <span>Lá bài #{flatIndex !== -1 ? flatIndex + 1 : index + 1}</span>
+                             </div>
+                             <div className="w-[160px] md:w-[260px]">
+                               <TarotCard 
+                                 card={card} 
+                                 index={index} 
+                                 isRevealed={revealedCardIds.has(card.id)}
+                                 onFlip={handleFlip}
+                               />
+                             </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>
