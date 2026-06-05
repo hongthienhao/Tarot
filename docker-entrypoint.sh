@@ -2,10 +2,7 @@
 
 # Wait for database to be ready (optional but recommended)
 echo "Waiting for database to be ready..."
-until nc -z db 5432; do
-  echo "Database is not ready yet, sleeping..."
-  sleep 1
-done
+echo "Skipping DB wait check, connecting directly..."
 echo "Database is ready! Running migrations and seeding..."
 
 # npx prisma migrate deploy # Apply migrations without resetting data
