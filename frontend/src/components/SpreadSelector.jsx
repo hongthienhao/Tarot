@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Activity, ChevronLeft, RefreshCw, BookOpen, Hash, BrainCircuit, Star, Shuffle, Save } from 'lucide-react';
+import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Activity, ChevronLeft, RefreshCw, BookOpen, Hash, BrainCircuit, Star, Shuffle, Save, Copy, Check } from 'lucide-react';
 import apiClient from '../api/client';
 import useAuthStore from '../store/useAuthStore';
 import useSoundStore, { playSFX } from '../store/useSoundStore';
@@ -223,6 +223,29 @@ const SpreadSelector = () => {
   const [isHoveringFan, setIsHoveringFan] = useState(false);
   const [currentReadingId, setCurrentReadingId] = useState(null);
   const [isAutoFlipping, setIsAutoFlipping] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopySpread = () => {
+    if (!drawnCards || drawnCards.length === 0) return;
+    
+    const formattedList = drawnCards.map((c, i) => {
+      const name = c?.name || c?.card?.name || `Lá bài #${i + 1}`;
+      const isReversed = c?.isReversed;
+      const orientation = isReversed ? 'Ngược (Reversed)' : 'Xuôi (Upright)';
+      return `${i + 1}. ${name} - ${orientation}`;
+    }).join('\n');
+
+    const copyText = `Trải bài Tarot của tôi:\n${formattedList}`;
+    
+    navigator.clipboard.writeText(copyText)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Lỗi khi sao chép trải bài:', err);
+      });
+  };
 
   const autoSaveReading = useCallback(async (cards, spreadInfo) => {
     if (!isAuthenticated) return;
@@ -730,9 +753,30 @@ const SpreadSelector = () => {
                 <div className="pt-24 border-t border-mystic-gold/10">
                    <div className="grid lg:grid-cols-3 gap-12">
                       <div className="lg:col-span-2 space-y-8">
-                        <div className="flex items-center gap-3 mb-8">
-                          <div className="p-3 bg-mystic-gold/10 rounded-xl text-mystic-gold"><BookOpen size={24} /></div>
-                          <h3 className="text-2xl font-serif gold-text uppercase tracking-widest">Thông Điệp Chi Tiết</h3>
+                        <div className="flex items-center justify-between mb-8">
+                          <div className="flex items-center gap-3">
+                            <div className="p-3 bg-mystic-gold/10 rounded-xl text-mystic-gold"><BookOpen size={24} /></div>
+                            <h3 className="text-2xl font-serif gold-text uppercase tracking-widest">Thông Điệp Chi Tiết</h3>
+                          </div>
+                          {drawnCards && drawnCards.length > 0 && (
+                            <button
+                              onClick={handleCopySpread}
+                              className="flex items-center gap-1.5 px-4 py-2 bg-mystic-gold/10 hover:bg-mystic-gold/20 border border-mystic-gold/30 rounded-xl text-mystic-gold text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-[0_0_15px_rgba(212,175,55,0.05)] cursor-pointer"
+                              title="Sao chép danh sách trải bài gồm xuôi và ngược"
+                            >
+                              {copied ? (
+                                <>
+                                  <Check size={13} className="text-green-400" />
+                                  <span className="text-green-400">Đã chép!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy size={13} />
+                                  <span>Sao chép</span>
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
                         
                         <div className="space-y-6">
