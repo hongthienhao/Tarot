@@ -7,6 +7,7 @@ import useSoundStore, { playSFX } from '../store/useSoundStore';
 import TarotCard from './TarotCard';
 import CardFan from './CardFan';
 import ChatInterface from './ChatInterface';
+import AIPersonaSelector from './AIPersonaSelector';
 
 const spreads = [
   {
@@ -210,6 +211,7 @@ const SpreadSelector = () => {
   const [isShuffling, setIsShuffling] = useState(false);
 
   // AI States
+  const [selectedPersona, setSelectedPersona] = useState('empathetic_healer');
   const [chatInput, setChatInput] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [aiStatus, setAiStatus] = useState('idle'); // idle, loading, streaming, done, error
@@ -447,7 +449,8 @@ const SpreadSelector = () => {
           spreadType: readingResult?.spreadName, 
           message: msgToSend,
           history: currentHistory,
-          readingId: currentReadingId
+          readingId: currentReadingId,
+          persona: selectedPersona
         })
       });
 
@@ -813,8 +816,12 @@ const SpreadSelector = () => {
                       </div>
 
                       {/* AI Sidebar */}
-                      <div className="lg:col-span-1">
-                        <div className="sticky top-32 h-[80vh]">
+                      <div className="lg:col-span-1 flex flex-col gap-4">
+                        <AIPersonaSelector 
+                          selectedPersona={selectedPersona}
+                          onSelectPersona={setSelectedPersona}
+                        />
+                        <div className="sticky top-32 h-[75vh]">
                           <ChatInterface
                             chatHistory={chatHistory}
                             aiStatus={aiStatus}

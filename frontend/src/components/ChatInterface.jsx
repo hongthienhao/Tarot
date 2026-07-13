@@ -13,7 +13,12 @@ import {
   Compass,
   Layers,
   Save,
-  Check
+  Check,
+  Volume2,
+  VolumeX,
+  Play,
+  Pause,
+  UserCheck
 } from 'lucide-react';
 
 /**
@@ -41,8 +46,81 @@ const ChatInterface = ({
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const [speakingIndex, setSpeakingIndex] = useState(null);
+  const [isSpeechPaused, setIsSpeechPaused] = useState(false);
   const chatEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
+
+  // Clean up speech synthesis on unmount
+  useEffect(() => {
+    return () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const handleToggleSpeak = (text, index) => {
+    if (!('speechSynthesis' in window)) {
+      alert('Trình duyệt của bạn không hỗ trợ tính năng Đọc bằng giọng nói (Text-to-Speech).');
+      return;
+    }
+
+    const synth = window.speechSynthesis;
+
+    // If currently speaking this index and paused, resume
+    if (speakingIndex === index && isSpeechPaused) {
+      synth.resume();
+      setIsSpeechPaused(false);
+      return;
+    }
+
+    // If currently speaking this index and active, pause
+    if (speakingIndex === index && synth.speaking && !isSpeechPaused) {
+      synth.pause();
+      setIsSpeechPaused(true);
+      return;
+    }
+
+    // Cancel current speaking if any
+    synth.cancel();
+
+    // Clean markdown characters for pleasant speech
+    const cleanText = text
+      .replace(/#+\s*/g, '')
+      .replace(/\*\*/g, '')
+      .replace(/>\s*/g, '')
+      .replace(/[-*•]\s*/g, '')
+      .trim();
+
+    if (!cleanText) return;
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'vi-VN';
+    utterance.rate = 0.95; // slightly calm reading speed
+    utterance.pitch = 1.0;
+
+    // Try to find a Vietnamese voice if available
+    const voices = synth.getVoices();
+    const viVoice = voices.find(v => v.lang.includes('vi') || v.name.includes('Vietnamese'));
+    if (viVoice) {
+      utterance.voice = viVoice;
+    }
+
+    utterance.onend = () => {
+      setSpeakingIndex(null);
+      setIsSpeechPaused(false);
+    };
+
+    utterance.onerror = () => {
+      setSpeakingIndex(null);
+      setIsSpeechPaused(false);
+    };
+
+    setSpeakingIndex(index);
+    setIsSpeechPaused(false);
+    synth.speak(utterance);
+  };
 
   // Auto scroll logic on new streaming/message events
   useEffect(() => {
@@ -50,8 +128,6 @@ const ChatInterface = ({
       const container = scrollContainerRef.current;
       const isStreaming = aiStatus === 'streaming';
       
-      // If streaming, use instant scroll ('auto') to avoid jerkiness from animation interrupts
-      // Otherwise, use 'smooth' scroll for pleasant transitions
       container.scrollTo({
         top: container.scrollHeight,
         behavior: isStreaming ? 'auto' : 'smooth',
@@ -394,8 +470,41 @@ const ChatInterface = ({
                           ? 'bg-gradient-to-br from-mystic-gold/20 via-mystic-gold/5 to-transparent border-mystic-gold/30 rounded-tr-none text-mystic-gold shadow-[0_10px_35px_rgba(212,175,55,0.05)]' 
                           : 'bg-mystic-dark/65 border-mystic-gold/15 rounded-tl-none text-gray-200 shadow-[0_20px_45px_rgba(0,0,0,0.5)] backdrop-blur-md'
                       }`}>
-                        <div className="text-[9px] font-bold mb-2 uppercase tracking-[0.2em] opacity-40">
-                          {msg.role === 'user' ? 'Bạn' : 'Bậc Thầy'}
+                        <div className="flex items-center justify-between gap-4 mb-2">
+                          <span className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-40">
+                            {msg.role === 'user' ? 'Bạn' : 'Bậc Thầy AI'}
+                          </span>
+
+                          {msg.role === 'ai' && msg.text.trim() && (
+                            <button
+                              onClick={() => handleToggleSpeak(msg.text, idx)}
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-serif transition-all border cursor-pointer ${
+                                speakingIndex === idx
+                                  ? 'bg-mystic-gold/20 text-mystic-gold border-mystic-gold/50 shadow-[0_0_10px_rgba(212,175,55,0.3)] animate-pulse'
+                                  : 'bg-white/5 text-gray-400 border-white/10 hover:text-mystic-gold hover:border-mystic-gold/30'
+                              }`}
+                              title={speakingIndex === idx && !isSpeechPaused ? 'Tạm dừng giọng đọc' : 'Đọc lời giải bằng giọng nói'}
+                            >
+                              {speakingIndex === idx ? (
+                                isSpeechPaused ? (
+                                  <>
+                                    <Play size={11} className="text-mystic-gold" />
+                                    <span>Tiếp tục</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Pause size={11} className="text-mystic-gold animate-bounce" />
+                                    <span>Đang đọc...</span>
+                                  </>
+                                )
+                              ) : (
+                                <>
+                                  <Volume2 size={11} />
+                                  <span>Đọc giọng nói</span>
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
                         <div className="selection:bg-mystic-gold selection:text-mystic-dark">
                           {renderMessageContent(

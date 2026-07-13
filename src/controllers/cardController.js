@@ -83,7 +83,7 @@ export const drawCards = catchAsync(async (req, res, next) => {
 });
 
 export const generateReading = catchAsync(async (req, res, next) => {
-  const { cards, spreadType, message, history, readingId } = req.body;
+  const { cards, spreadType, message, history, readingId, persona, userProfile } = req.body;
 
   if (!cards || !Array.isArray(cards) || cards.length === 0) {
     return next(new AppError('Vui lòng cung cấp danh sách các lá bài đã rút.', 400));
@@ -95,11 +95,19 @@ export const generateReading = catchAsync(async (req, res, next) => {
   res.setHeader('Connection', 'keep-alive');
 
   try {
+    const profile = userProfile || (req.user ? {
+      zodiacSign: req.user.zodiacSign,
+      birthDate: req.user.birthDate,
+      numerologyLifePath: req.user.numerologyLifePath
+    } : null);
+
     const stream = await streamTarotReading(
       cards,
       spreadType || 'Trải bài Tarot',
       message || 'Hãy giải bài giúp tôi.',
-      history || []
+      history || [],
+      persona || 'empathetic_healer',
+      profile
     );
 
     let fullInterpretation = '';

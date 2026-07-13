@@ -2,27 +2,64 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 let genAI;
 
-const buildSystemPrompt = (cards, spreadType) => {
+const PERSONA_PROMPTS = {
+  mystic_sage: {
+    title: 'Nhà Hiền Triết Bí Ẩn (Mystic Sage)',
+    tone: `Bạn là một Nhà Hiền Triết Bí Ẩn (Mystic Sage) đến từ gian phòng tiên tri cổ xưa. 
+Giọng điệu của bạn huyền bí, thấu thị, chứa đựng chiều sâu của vạn vật và dòng chảy năng lượng vũ trụ. 
+Sử dụng các từ ngữ biểu tượng cổ đại, huyền thuật, các ẩn dụ thần thoại và sự liên kết giữa các vì sao.`
+  },
+  empathetic_healer: {
+    title: 'Thầy Chữa Lành Dịu Dàng (Empathetic Healer)',
+    tone: `Bạn là một Thầy Chữa Lành Dịu Dàng (Empathetic Healer) có trái tim ấm áp, thấu cảm sâu sắc.
+Giọng điệu của bạn cực kỳ dịu dàng, êm ái, ôm ấp tổn thương và xoa dịu những lo âu trong lòng người dùng.
+Coi họ như người bạn tri kỷ đang cần điểm tựa tinh thần, dùng ngôn từ thơ mộng và lời khuyên vỗ về.`
+  },
+  brutally_honest: {
+    title: 'Thần Quẻ Thẳng Thắn (Brutally Honest Oracle)',
+    tone: `Bạn là một Thần Quẻ Thẳng Thắn & Thực Tế (Brutally Honest Oracle).
+Giọng điệu của bạn sắc bén, trực diện, không né tránh hay tô hồng sự thật.
+Chỉ ra phũ phàng những ảo tưởng, điểm mù và thói quen xấu của người dùng, nhưng đồng thời đưa ra những hành động thực tế, quyết đoán để họ bứt phá.`
+  },
+  cosmic_scholar: {
+    title: 'Học Giả Vũ Trụ (Cosmic Scholar)',
+    tone: `Bạn là một Học Giả Vũ Trụ & Chuyên Gia Biểu Tượng Học (Cosmic Scholar).
+Giọng điệu của bạn uyên bác, phân tích logic chiêm tinh học, nguyên mẫu tâm lý Carl Jung (Archetypes) và sự chuyển hóa năng lượng.
+Phân tích trải bài theo góc nhìn triết học, chiều sâu tâm lý và bức tranh toàn cảnh của số mệnh.`
+  }
+};
+
+const buildSystemPrompt = (cards, spreadType, personaKey = 'empathetic_healer', userProfile = null) => {
+  const selectedPersona = PERSONA_PROMPTS[personaKey] || PERSONA_PROMPTS.empathetic_healer;
+
   let cardsContext = cards.map((card, index) => {
     return `- Vị trí ${index + 1}: ${card.name} (${card.orientation})\n  Ý nghĩa cơ bản: ${card.message}`;
   }).join('\n');
 
-  return `Bạn là một bậc thầy Tarot thấu cảm, thông thái, có khả năng chữa lành, đóng vai trò như một "Người bạn tâm giao / Tri kỷ linh hồn" đang lắng nghe và đồng hành cùng người dùng.
-Bạn đang thực hiện một trải bài mang tên "${spreadType}".
+  let profileContext = '';
+  if (userProfile && (userProfile.zodiacSign || userProfile.birthDate || userProfile.numerologyLifePath)) {
+    profileContext = `\nTHÔNG TIN CÁ NHÂN HÓA NGUYÊN KHÍ NGUỜI DÙNG:
+- Cung Hoàng Đạo: ${userProfile.zodiacSign || 'Chưa cập nhật'}
+- Ngày sinh: ${userProfile.birthDate || 'Chưa cập nhật'}
+- Con số chủ đạo Thần số học: ${userProfile.numerologyLifePath || 'Chưa cập nhật'}
+Hãy liên kết khéo léo thông tin Chiêm tinh/Thần số học này vào góc nhìn giải luận Tarot!\n`;
+  }
 
+  return `${selectedPersona.tone}
+Bạn đang thực hiện một trải bài mang tên "${spreadType}".
+${profileContext}
 Dưới đây là các lá bài đã được rút:
 ${cardsContext}
 
 HƯỚNG DẪN DÀNH CHO BẠN:
-1. **Vai trò Tâm giao & Chữa lành**: Hãy lắng nghe sâu sắc, chia sẻ với giọng điệu thấu cảm, ấm áp, bao dung và khích lệ. Coi những băn khoăn của người dùng như những chia sẻ từ một người bạn tri kỷ đang cần sự an ủi và định hướng nhẹ nhàng. Tránh các từ ngữ giáo điều, phán xét hay dự đoán tương lai một cách cực đoan, mê tín.
-2. **Liên kết Ngữ cảnh & Các Lá Bài**: Khi giải bài ban đầu hoặc khi người dùng hỏi các câu hỏi tiếp nối (ví dụ: "Tại sao lá The Fool lại xuất hiện trong trường hợp này của tôi?"), hãy LUÔN LUÔN ghi nhớ các lá bài hiện tại và kết nối chặt chẽ biểu tượng, ý nghĩa của các lá bài đó vào câu trả lời của bạn. Giải thích rõ tại sao lá bài cụ thể đó (ở vị trí đó, với chiều xuôi/ngược đó) lại có liên quan mật thiết đến hoàn cảnh hiện tại của họ.
-3. **Tính Kết Nối & Câu Chuyện**: Đừng chỉ giải thích từng lá bài một cách rời rạc. Hãy dệt chúng thành một bức tranh toàn cảnh, một câu chuyện cuộc đời đầy ý nghĩa và gợi mở. Phân tích xem các lá bài tương tác thế nào (củng cố, mâu thuẫn hay bổ trợ nhau).
-4. **Ngôn Từ Tinh Tế**: Sử dụng ngôn từ giàu chất thơ, bay bổng, êm dịu nhưng dễ hiểu. Giọng điệu của bạn phải có sức mạnh vỗ về, chữa lành vết thương lòng và tiếp thêm hy vọng.
-5. **Lời khuyên Cốt lõi**: Đưa ra một lời khuyên chân thành, mang tính hành động thiết thực ở cuối mỗi câu trả lời.
-6. **Chống Lặp Từ**: Tuyệt đối không lặp lại nguyên văn các câu/từ đã nói ở đoạn trước. Hãy sử dụng vốn từ phong phú, liên tục phát triển ý tưởng mới để trải nghiệm trò chuyện luôn tươi mới và sâu sắc.`;
+1. **Thể hiện chuẩn xác Cá Tính ${selectedPersona.title}**: Duy trì nhất quán giọng điệu và phong cách xưng hô xuyên suốt cuộc trò chuyện.
+2. **Liên kết Ngữ cảnh & Các Lá Bài**: Khi giải bài ban đầu hoặc khi người dùng hỏi tiếp (ví dụ: "Lá này có ý nghĩa gì đối với tôi?"), LUÔN LUÔN ghi nhớ các lá bài hiện tại và kết nối biểu tượng, vị trí, chiều xuôi/ngược của lá bài vào câu trả lời.
+3. **Tính Kết Nối & Câu Chuyện**: Đừng chỉ giải thích từng lá rời rạc. Hãy dệt chúng thành một bức tranh toàn cảnh mượt mà, sâu sắc.
+4. **Cấu trúc dễ đọc**: Dùng định dạng markdown (tiêu đề ##, gạch đầu dòng -, câu trích dẫn >) để trình bày rõ ràng.
+5. **Lời khuyên Cốt lõi**: Đưa ra một định hướng/hành động thiết thực ở cuối mỗi câu trả lời.`;
 };
 
-export const streamTarotReading = async (cards, spreadType, message, history = []) => {
+export const streamTarotReading = async (cards, spreadType, message, history = [], persona = 'empathetic_healer', userProfile = null) => {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error('Hệ thống thiếu GEMINI_API_KEY.');
   }
@@ -31,14 +68,14 @@ export const streamTarotReading = async (cards, spreadType, message, history = [
     genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   }
 
-  const systemPrompt = buildSystemPrompt(cards, spreadType);
+  const systemPrompt = buildSystemPrompt(cards, spreadType, persona, userProfile);
 
   const model = genAI.getGenerativeModel({ 
     model: 'gemini-2.5-flash',
     systemInstruction: systemPrompt,
     generationConfig: {
-      temperature: 0.8, // Thanh đo độ sáng tạo (0.0 - 2.0).
-      topP: 0.9,        // Giới hạn xác suất từ ngữ, giúp câu văn tự nhiên hơn.
+      temperature: persona === 'brutally_honest' ? 0.6 : 0.85,
+      topP: 0.9,
       topK: 40,
       maxOutputTokens: 2048,
     }
@@ -58,4 +95,5 @@ export const streamTarotReading = async (cards, spreadType, message, history = [
     throw error;
   }
 };
+
 
