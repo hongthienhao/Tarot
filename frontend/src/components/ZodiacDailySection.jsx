@@ -25,7 +25,7 @@ const ZodiacDailySection = () => {
   const activeCompatibility = ZODIAC_COMPATIBILITY[activeZodiacKey];
 
   return (
-    <section className="py-24 px-6 max-w-7xl mx-auto relative overflow-hidden">
+    <section id="zodiac" className="py-8 px-6 max-w-7xl mx-auto relative overflow-hidden">
       {/* Mystical Background Atmosphere */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(ellipse_at_center,rgba(212,175,55,0.06)_0%,transparent_70%)] pointer-events-none" />
 

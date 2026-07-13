@@ -36,10 +36,10 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'Trang Chủ', href: '/' },
-    { name: 'Bản Đồ Nguyên Khí ✨', href: '/cosmic' },
-    { name: 'Kiểu Trải Bài', href: '/#spreads' },
-    { name: 'Ý Nghĩa Bài', href: '/#' },
-    { name: 'Về Chúng Tôi', href: '/#' },
+    { name: 'Khu Tarot 🔮', href: '/#spreads' },
+    { name: 'Khu Chiêm Tinh ✨', href: '/cosmic' },
+    { name: 'Ý Nghĩa Bài 📖', href: '/#' },
+    { name: 'Về Chúng Tôi 📜', href: '/#' },
   ];
 
   // Custom click handler to capture hash routes, open modals, or smooth scroll
