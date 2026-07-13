@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Calendar, Sparkles, Hash, Star, Check, AlertCircle } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import apiClient from '../api/client';
-import { calculateZodiacSign, calculateLifePathNumber, LIFE_PATH_MEANINGS } from '../utils/astrology';
+import { calculateZodiacSign, calculateLifePathNumber, getZodiacDetails, LIFE_PATH_MEANINGS } from '../utils/astrology';
 
 const UserProfileModal = ({ isOpen, onClose }) => {
   const { user, updateUser } = useAuthStore();
@@ -19,7 +19,7 @@ const UserProfileModal = ({ isOpen, onClose }) => {
     }
   }, [user, isOpen]);
 
-  const previewZodiac = calculateZodiacSign(birthDate);
+  const zodiacDetails = getZodiacDetails(birthDate);
   const previewLifePath = calculateLifePathNumber(birthDate);
 
   const handleSubmit = async (e) => {
@@ -130,13 +130,33 @@ const UserProfileModal = ({ isOpen, onClose }) => {
                 animate={{ opacity: 1, y: 0 }}
                 className="p-4 rounded-2xl border border-mystic-gold/25 bg-mystic-gold/5 space-y-3 shadow-inner"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between border-b border-mystic-gold/15 pb-2">
                   <span className="text-xs text-gray-400 font-serif">Cung Hoàng Đạo:</span>
                   <span className="text-xs font-bold text-mystic-gold font-serif flex items-center gap-1">
-                    <Sparkles size={12} className="text-mystic-gold" />
-                    {previewZodiac || 'Không xác định'}
+                    <Sparkles size={12} className="text-mystic-gold animate-spin-slow" />
+                    {zodiacDetails ? zodiacDetails.name : 'Không xác định'}
                   </span>
                 </div>
+
+                {zodiacDetails && (
+                  <div className="grid grid-cols-2 gap-2 text-[11px] py-1 border-b border-mystic-gold/15">
+                    <div className="flex items-center gap-1.5 text-amber-200/90 font-serif">
+                      <span className="text-xs font-medium text-gray-400">Nguyên tố:</span>
+                      <span className="px-2 py-0.5 rounded-full bg-mystic-gold/15 border border-mystic-gold/30 text-mystic-gold font-bold">
+                        {zodiacDetails.element}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-amber-200/90 font-serif">
+                      <span className="text-xs font-medium text-gray-400">Sao Trị Vì:</span>
+                      <span className="px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 font-bold">
+                        {zodiacDetails.rulingPlanet}
+                      </span>
+                    </div>
+                    <div className="col-span-2 text-[10px] italic text-gray-300 font-light mt-1">
+                      🌌 <span className="text-mystic-gold/90">{zodiacDetails.vibe}</span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-400 font-serif">Con Số Chủ Đạo (Life Path):</span>

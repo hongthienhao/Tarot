@@ -19,13 +19,19 @@ Tài liệu này dùng để theo dõi tiến độ nâng cấp webapp Tarot Mys
 
 ---
 
-### 🟢 PHA 2: HỒ SƠ CÁ NHÂN, CUNG HOÀNG ĐẠO & THẦN SỐ HỌC
+### 🟢 PHA 2: HỒ SƠ CÁ NHÂN, CUNG HOÀNG ĐẠO & THẦN SỐ HỌC (CHI TIẾT & TRANG CHỦ)
 - [x] **2.1 Nâng cấp CSDL Prisma**
   - Thêm `zodiacSign`, `birthDate`, `numerologyLifePath` vào model `User` trong Prisma schema và database.
-- [x] **2.2 Modal Cấu hình Ngày sinh & Cung Hoàng Đạo (`UserProfileModal.jsx`)**
-  - Tự động tính Cung Hoàng Đạo & Con số chủ đạo (Life Path Number) dựa trên ngày sinh với xem trước thời gian thực.
-- [x] **2.3 Tích hợp Chiêm tinh vào Lời giải Tarot**
-  - Tự động kết nối Cung Hoàng Đạo & Thần số học của người dùng vào prompt Gemini AI để đưa ra góc nhìn cá nhân hóa tối đa.
+- [x] **2.2 Bộ Dữ Liệu Chiêm Tinh & Thần Số Học Chi Tiết (`astrology.js`)**
+  - Phân loại **Nguyên tố bản mệnh (Hỏa 🔥 / Thổ 🌿 / Khí 💨 / Thủy 💧)**, **Hành tinh trị vì (Ruling Planet)** và **Mã năng lượng Vibe** cho toàn bộ 12 Cung Hoàng Đạo.
+  - Tự động tính toán Con số chủ đạo (Life Path 1-9, Master Numbers 11, 22, 33) với bộ ý nghĩa biểu tượng chi tiết.
+- [x] **2.3 Modal Hồ Sơ Nguyên Khí Nâng Cấp (`UserProfileModal.jsx`)**
+  - Giao diện Mystical Glassmorphism hỗ trợ tính toán thời gian thực Cung Hoàng Đạo, Badge Nguyên tố, Sao trị vì và Thần số học kèm diễn giải trực quan.
+- [x] **2.4 Widget Năng Lượng Chiêm Tinh Cá Nhân Trên Trang Chủ (`Hero.jsx`)**
+  - Tích hợp **Astro Vibe Widget** nổi bật ngay vị trí trung tâm Trang Chủ (Hero section).
+  - Tự động hiển thị Badge Cung + Nguyên Tố + Số Chủ Đạo nếu đã có ngày sinh, hoặc Banner bí ẩn gọi mời người dùng cài đặt hồ sơ chỉ với 1 click.
+- [x] **2.5 Tích hợp Chiêm Tinh Sâu vào Gemini AI Engine (`aiService.js`)**
+  - Đưa thông số Nguyên tố & Hành tinh bảo hộ vào System Prompt của Gemini AI 2.5 Flash để luận quẻ Tarot khớp hoàn toàn với năng lượng bản mệnh người dùng.
 
 ---
 

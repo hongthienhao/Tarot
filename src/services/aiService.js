@@ -42,7 +42,7 @@ const buildSystemPrompt = (cards, spreadType, personaKey = 'empathetic_healer', 
 - Cung Hoàng Đạo: ${userProfile.zodiacSign || 'Chưa cập nhật'}
 - Ngày sinh: ${userProfile.birthDate || 'Chưa cập nhật'}
 - Con số chủ đạo Thần số học: ${userProfile.numerologyLifePath || 'Chưa cập nhật'}
-Hãy liên kết khéo léo thông tin Chiêm tinh/Thần số học này vào góc nhìn giải luận Tarot!\n`;
+Hãy hòa trộn tinh tế thông tin Chiêm tinh (Nguyên tố Hỏa/Thổ/Khí/Thủy, Hành tinh trị vì của Cung) và Thần số học của người dùng vào lời luận quẻ Tarot. Giải thích mối liên hệ giữa năng lượng bản mệnh của họ và thông điệp mà các lá bài phản chiếu!\n`;
   }
 
   return `${selectedPersona.tone}
