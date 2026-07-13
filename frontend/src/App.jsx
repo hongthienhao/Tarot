@@ -11,6 +11,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AudioController from './components/Layout/AudioController';
 import useSoundStore, { initAudioContext } from './store/useSoundStore';
 
+import CosmicSanctuaryPage from './pages/CosmicSanctuaryPage';
+
 function App() {
   const initSound = useSoundStore(state => state.initSound);
 
@@ -46,6 +48,7 @@ function App() {
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/cosmic" element={<CosmicSanctuaryPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           

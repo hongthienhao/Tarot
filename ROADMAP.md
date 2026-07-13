@@ -32,6 +32,10 @@ Tài liệu này dùng để theo dõi tiến độ nâng cấp webapp Tarot Mys
   - Tự động hiển thị Badge Cung + Nguyên Tố + Số Chủ Đạo nếu đã có ngày sinh, hoặc Banner bí ẩn gọi mời người dùng cài đặt hồ sơ chỉ với 1 click.
 - [x] **2.5 Tích hợp Chiêm Tinh Sâu vào Gemini AI Engine (`aiService.js`)**
   - Đưa thông số Nguyên tố & Hành tinh bảo hộ vào System Prompt của Gemini AI 2.5 Flash để luận quẻ Tarot khớp hoàn toàn với năng lượng bản mệnh người dùng.
+- [x] **2.6 Trang Bản Đồ Nguyên Khí Vũ Trụ Độc Lập (`CosmicSanctuaryPage.jsx` - Route `/cosmic`)**
+  - Xây dựng Sanctuary Hub Flagship gồm 3 Tab: *Bản Đồ Chiêm Tinh*, *Tam Hợp Thần Số Học (Số Chủ Đạo, Số Sứ Mệnh Name, Số Năm Cá Nhân 2026)* và *Điểm Rung Động Linh Hồn (Resonance Score %)*.
+- [x] **2.7 Vòng Xoay Vũ Trụ & 12 Cung Hoàng Đạo Tương Tác Trên Trang Chủ (`ZodiacDailySection.jsx`)**
+  - Tích hợp Section tương tác 12 Cung Hoàng Đạo lộng lẫy ngay tại Trang chủ, hỗ trợ lọc Nguyên Tố (Hỏa/Thổ/Khí/Thủy), xem Dự Báo Năng Lượng & Lá Bài Hộ Mệnh trong ngày cho bất kỳ ai.
 
 ---
 
