@@ -96,9 +96,9 @@ export const generateReading = catchAsync(async (req, res, next) => {
 
   try {
     const stream = await streamTarotReading(
-      cards, 
-      spreadType || 'Trải bài Tarot', 
-      message || 'Hãy giải bài giúp tôi.', 
+      cards,
+      spreadType || 'Trải bài Tarot',
+      message || 'Hãy giải bài giúp tôi.',
       history || []
     );
 
@@ -120,21 +120,21 @@ export const generateReading = catchAsync(async (req, res, next) => {
         if (readingId) {
           // Cập nhật phiên trải bài hiện tại
           const currentReading = await prisma.reading.findUnique({ where: { id: readingId } });
-          
+
           if (!currentReading.interpretation) {
             // Lần giải luận đầu tiên cho phiên này
             await prisma.reading.update({
               where: { id: readingId },
-              data: { 
+              data: {
                 userQuestion: message || 'Giải bài tổng quan',
-                interpretation: fullInterpretation 
+                interpretation: fullInterpretation
               }
             });
           } else {
             // Các câu hỏi hỏi thêm sau đó (Chat)
             const newNote = `**Bạn**: ${message || 'Hỏi thêm'}\n\n**Bậc thầy Tarot**: ${fullInterpretation}`;
             const updatedNotes = currentReading.notes ? `${currentReading.notes}\n\n---\n\n${newNote}` : newNote;
-            
+
             await prisma.reading.update({
               where: { id: readingId },
               data: { notes: updatedNotes }
