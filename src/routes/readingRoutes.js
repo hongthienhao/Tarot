@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect } from '../middlewares/authMiddleware.js';
-import { getUserReadings, saveReading, deleteReading, deleteMultipleReadings } from '../controllers/readingController.js';
+import { getUserReadings, saveReading, deleteReading, deleteMultipleReadings, updateReading } from '../controllers/readingController.js';
 
 const router = express.Router();
 
@@ -141,6 +141,7 @@ router.route('/delete-multiple')
  *         description: Reading not found
  */
 router.route('/:id')
+  .put(updateReading)
   .delete(deleteReading);
 
 export default router;

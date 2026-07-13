@@ -30,19 +30,19 @@ Tài liệu này dùng để theo dõi tiến độ nâng cấp webapp Tarot Mys
 ---
 
 ### 🟢 PHA 3: MỞ RỘNG TRẢI BÀI & LÁ BÀI HẰNG NGÀY (DAILY TAROT)
-- [ ] **3.1 Trải bài mở rộng**
+- [x] **3.1 Trải bài mở rộng**
   - Trải bài **Relationship / Mối quan hệ Đôi lứa (7 lá)**.
   - Trải bài **Celtic Cross Huyền thoại (10 lá)**.
-- [ ] **3.2 Lá bài Hằng ngày (Daily Tarot Widget) & Streak Counter**
-  - Rút bài mỗi ngày, lưu vết và hiển thị chuỗi Streak tích lũy.
+- [x] **3.2 Lá bài Hằng ngày (Daily Tarot Widget) & Streak Counter (`DailyTarotModal.jsx`)**
+  - Rút bài mỗi ngày, lưu vết và hiển thị chuỗi Streak tích lũy kèm giải luận AI tự động và đọc TTS.
 
 ---
 
 ### 🟢 PHA 4: NHẬT KÝ TRẢI BÀI & CHIA SẺ MẠNG XÃ HỘI
-- [ ] **4.1 Ghi chú nhật ký & Gắn thẻ bài**
-  - Cho phép người dùng gắn tag (Tình yêu, Sự nghiệp, Tiền tài, Tự ngẫm) và chỉnh sửa note sau khi trải bài.
-- [ ] **4.2 Thẻ Chia sẻ Mạng xã hội (Social Share Card)**
-  - Tạo ảnh thiết kế đẹp mắt của quẻ bài để tải về hoặc share Facebook / Zalo.
+- [x] **4.1 Ghi chú nhật ký & Gắn thẻ bài**
+  - Cho phép người dùng gắn tag (*Tình yêu, Sự nghiệp, Tài chính, Tâm linh, Hằng ngày*) và lọc lịch sử trải bài theo thẻ.
+- [x] **4.2 Thẻ Chia sẻ Mạng xã hội (Social Share Card - `ShareCardModal.jsx`)**
+  - Tạo ảnh thiết kế viền vàng huyền bí độ phân giải cao để tải về hoặc sao chép liên kết chia sẻ lên MXH.
 
 ---
 

@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Calendar, Sparkles } from 'lucide-react';
+import DailyTarotModal from './DailyTarotModal';
 
 const Hero = () => {
+  const [isDailyOpen, setIsDailyOpen] = useState(false);
+
   const scrollToSpreads = () => {
     const element = document.getElementById('spreads');
     if (element) {
@@ -50,19 +53,31 @@ const Hero = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2, duration: 1 }}
-            className="flex justify-center items-center"
+            className="flex flex-col sm:flex-row justify-center items-center gap-4"
           >
             <motion.button 
               onClick={scrollToSpreads}
               whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(212,175,55,0.4)' }}
               whileTap={{ scale: 0.95 }}
-              className="px-12 py-5 bg-mystic-gold text-mystic-dark font-bold uppercase tracking-[0.2em] text-sm rounded-full transition-all cursor-pointer"
+              className="px-10 py-5 bg-mystic-gold text-mystic-dark font-bold uppercase tracking-[0.2em] text-xs rounded-full transition-all cursor-pointer shadow-lg"
             >
               Bắt đầu hành trình
+            </motion.button>
+
+            <motion.button 
+              onClick={() => setIsDailyOpen(true)}
+              whileHover={{ scale: 1.05, backgroundColor: 'rgba(212, 175, 55, 0.2)' }}
+              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-2.5 px-8 py-5 border border-mystic-gold/40 text-mystic-gold font-bold uppercase tracking-[0.2em] text-xs rounded-full transition-all cursor-pointer backdrop-blur-md bg-mystic-gold/10 shadow-[0_0_15px_rgba(212,175,55,0.1)]"
+            >
+              <Sparkles className="w-4 h-4 text-mystic-gold animate-spin-slow" />
+              <span>Lá Bài Hằng Ngày</span>
             </motion.button>
           </motion.div>
         </motion.div>
       </div>
+
+      <DailyTarotModal isOpen={isDailyOpen} onClose={() => setIsDailyOpen(false)} />
 
       {/* Scroll Indicator */}
       <motion.div 

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Activity, ChevronLeft, RefreshCw, BookOpen, Hash, BrainCircuit, Star, Shuffle, Save, Copy, Check } from 'lucide-react';
+import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Activity, ChevronLeft, RefreshCw, BookOpen, Hash, BrainCircuit, Star, Shuffle, Save, Copy, Check, Share2 } from 'lucide-react';
 import apiClient from '../api/client';
 import useAuthStore from '../store/useAuthStore';
 import useSoundStore, { playSFX } from '../store/useSoundStore';
@@ -8,6 +8,7 @@ import TarotCard from './TarotCard';
 import CardFan from './CardFan';
 import ChatInterface from './ChatInterface';
 import AIPersonaSelector from './AIPersonaSelector';
+import ShareCardModal from './ShareCardModal';
 
 const spreads = [
   {
@@ -226,6 +227,7 @@ const SpreadSelector = () => {
   const [currentReadingId, setCurrentReadingId] = useState(null);
   const [isAutoFlipping, setIsAutoFlipping] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const handleCopySpread = () => {
     if (!drawnCards || drawnCards.length === 0) return;
@@ -767,23 +769,33 @@ const SpreadSelector = () => {
                             <h3 className="text-2xl font-serif gold-text uppercase tracking-widest">Thông Điệp Chi Tiết</h3>
                           </div>
                           {drawnCards && drawnCards.length > 0 && (
-                            <button
-                              onClick={handleCopySpread}
-                              className="flex items-center gap-1.5 px-4 py-2 bg-mystic-gold/10 hover:bg-mystic-gold/20 border border-mystic-gold/30 rounded-xl text-mystic-gold text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-[0_0_15px_rgba(212,175,55,0.05)] cursor-pointer"
-                              title="Sao chép danh sách trải bài gồm xuôi và ngược"
-                            >
-                              {copied ? (
-                                <>
-                                  <Check size={13} className="text-green-400" />
-                                  <span className="text-green-400">Đã chép!</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy size={13} />
-                                  <span>Sao chép</span>
-                                </>
-                              )}
-                            </button>
+                            <div className="flex items-center gap-2.5">
+                              <button
+                                onClick={() => setIsShareModalOpen(true)}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-mystic-gold/15 hover:bg-mystic-gold/25 border border-mystic-gold/30 rounded-xl text-mystic-gold text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-[0_0_15px_rgba(212,175,55,0.1)] cursor-pointer"
+                                title="Tạo thẻ ảnh trải bài để chia sẻ lên Mạng xã hội"
+                              >
+                                <Share2 size={13} />
+                                <span>Chia sẻ thẻ ảnh</span>
+                              </button>
+                              <button
+                                onClick={handleCopySpread}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-mystic-gold/10 hover:bg-mystic-gold/20 border border-mystic-gold/30 rounded-xl text-mystic-gold text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-[0_0_15px_rgba(212,175,55,0.05)] cursor-pointer"
+                                title="Sao chép danh sách trải bài gồm xuôi và ngược"
+                              >
+                                {copied ? (
+                                  <>
+                                    <Check size={13} className="text-green-400" />
+                                    <span className="text-green-400">Đã chép!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={13} />
+                                    <span>Sao chép</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           )}
                         </div>
                         
@@ -866,6 +878,15 @@ const SpreadSelector = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Share Card Modal */}
+      <ShareCardModal 
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        drawnCards={drawnCards}
+        spreadName={readingResult?.spreadName}
+        userQuestion={chatInput}
+      />
     </section>
   );
 };

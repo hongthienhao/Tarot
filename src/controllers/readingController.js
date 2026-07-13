@@ -41,7 +41,10 @@ export const saveReading = async (req, res, next) => {
       notes, 
       spreadName, 
       userQuestion, 
-      interpretation 
+      interpretation,
+      tags,
+      isDaily,
+      persona
     } = req.body;
 
     if (!cards || !Array.isArray(cards) || cards.length === 0) {
@@ -55,6 +58,9 @@ export const saveReading = async (req, res, next) => {
         userQuestion,
         interpretation,
         notes,
+        tags: Array.isArray(tags) ? tags : [],
+        isDaily: Boolean(isDaily),
+        persona: persona || null,
         readingCards: {
           create: cards.map((card, index) => ({
             cardId: card.cardId || card.id,
@@ -80,6 +86,53 @@ export const saveReading = async (req, res, next) => {
     });
   } catch (error) {
     console.error('Error in saveReading:', error);
+    next(error);
+  }
+};
+
+export const updateReading = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { notes, tags } = req.body;
+
+    const reading = await prisma.reading.findUnique({
+      where: { id },
+    });
+
+    if (!reading) {
+      return next(new AppError('Không tìm thấy bản ghi trải bài', 404));
+    }
+
+    if (reading.userId !== req.user.id) {
+      return next(new AppError('Bạn không có quyền chỉnh sửa bản ghi này', 403));
+    }
+
+    let updateData = {};
+    if (notes !== undefined) updateData.notes = notes;
+    if (tags !== undefined && Array.isArray(tags)) updateData.tags = tags;
+
+    const updated = await prisma.reading.update({
+      where: { id },
+      data: updateData,
+      include: {
+        readingCards: {
+          include: {
+            card: true,
+          },
+          orderBy: {
+            position: 'asc',
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        reading: updated,
+      },
+    });
+  } catch (error) {
     next(error);
   }
 };

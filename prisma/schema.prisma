@@ -48,6 +48,9 @@ model Reading {
   userQuestion   String?
   interpretation String?       @db.Text
   notes          String?
+  tags           String[]
+  isDaily        Boolean       @default(false)
+  persona        String?
   readingCards   ReadingCard[]
 }
 

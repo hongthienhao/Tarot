@@ -110,6 +110,13 @@ const HistoryPage = () => {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [notification, setNotification] = useState(null);
   const [activeTab, setActiveTab] = useState('CHRONICLES'); // 'CHRONICLES' | 'ANALYTICS'
+  const [selectedTag, setSelectedTag] = useState('ALL'); // 'ALL' | 'Tình yêu' | 'Sự nghiệp' | 'Tài chính' | 'Tâm linh' | 'Hằng ngày'
+
+  const filteredReadings = useMemo(() => {
+    if (selectedTag === 'ALL') return readings;
+    if (selectedTag === 'Hằng ngày') return readings.filter(r => r.isDaily);
+    return readings.filter(r => r.tags && Array.isArray(r.tags) && r.tags.includes(selectedTag));
+  }, [readings, selectedTag]);
 
 
   // States for Interactive Soul Chat
@@ -381,6 +388,23 @@ const HistoryPage = () => {
     }
   };
 
+  const handleToggleReadingTag = async (readingId, tag) => {
+    if (!selectedReading) return;
+    const currentTags = selectedReading.tags || [];
+    const newTags = currentTags.includes(tag)
+      ? currentTags.filter(t => t !== tag)
+      : [...currentTags, tag];
+
+    setSelectedReading(prev => ({ ...prev, tags: newTags }));
+    setReadings(prev => prev.map(r => r.id === readingId ? { ...r, tags: newTags } : r));
+
+    try {
+      await apiClient.put(`/readings/${readingId}`, { tags: newTags });
+    } catch (err) {
+      console.error('Lỗi khi cập nhật tag:', err);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen pt-24 pb-12 flex flex-col items-center justify-center relative z-10">
@@ -517,9 +541,28 @@ const HistoryPage = () => {
                 </motion.div>
               )}
 
+              {/* Tag Filters */}
+              {readings.length > 0 && (
+                <div className="flex flex-wrap items-center justify-center gap-2.5 mb-10">
+                  {['ALL', 'Tình yêu', 'Sự nghiệp', 'Tài chính', 'Tâm linh', 'Hằng ngày'].map(tag => (
+                    <button
+                      key={tag}
+                      onClick={() => setSelectedTag(tag)}
+                      className={`px-4 py-2 rounded-full text-xs font-serif font-bold uppercase tracking-wider transition-all cursor-pointer border ${
+                        selectedTag === tag
+                          ? 'bg-mystic-gold text-mystic-dark border-mystic-gold shadow-[0_0_15px_rgba(212,175,55,0.3)]'
+                          : 'bg-mystic-dark/40 border-white/10 text-gray-400 hover:text-mystic-gold hover:border-mystic-gold/30'
+                      }`}
+                    >
+                      {tag === 'ALL' ? 'Tất cả quẻ bài' : tag}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {/* Grid View of Readings */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {readings.map((reading, index) => (
+                {filteredReadings.map((reading, index) => (
                   <motion.div
                     key={reading.id}
                     initial={{ opacity: 0, y: 30 }}
@@ -658,10 +701,33 @@ const HistoryPage = () => {
                       {selectedReading.spreadName || "Biên Niên Sử Mệnh Vận"}
                     </h2>
                     {selectedReading.userQuestion && (
-                      <div className="max-w-2xl mx-auto italic text-gray-400 text-lg md:text-xl font-light">
+                      <div className="max-w-2xl mx-auto italic text-gray-400 text-lg md:text-xl font-light mb-6">
                         "{selectedReading.userQuestion}"
                       </div>
                     )}
+
+                    {/* Tagging Bar */}
+                    <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                      <span className="text-[10px] uppercase font-serif tracking-widest text-mystic-gold/60 mr-2 font-bold">
+                        Gắn thẻ:
+                      </span>
+                      {['Tình yêu', 'Sự nghiệp', 'Tài chính', 'Tâm linh'].map(tag => {
+                        const isTagged = (selectedReading.tags || []).includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            onClick={() => handleToggleReadingTag(selectedReading.id, tag)}
+                            className={`px-3 py-1 rounded-full text-[11px] font-serif transition-all cursor-pointer border ${
+                              isTagged
+                                ? 'bg-mystic-gold/20 text-mystic-gold border-mystic-gold/50 shadow-[0_0_10px_rgba(212,175,55,0.2)]'
+                                : 'bg-white/5 text-gray-400 border-white/10 hover:text-white hover:border-white/20'
+                            }`}
+                          >
+                            {isTagged ? `✓ ${tag}` : `+ ${tag}`}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   {/* Cards Row */}
