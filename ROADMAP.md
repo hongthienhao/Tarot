@@ -20,12 +20,12 @@ Tài liệu này dùng để theo dõi tiến độ nâng cấp webapp Tarot Mys
 ---
 
 ### 🟢 PHA 2: HỒ SƠ CÁ NHÂN, CUNG HOÀNG ĐẠO & THẦN SỐ HỌC
-- [ ] **2.1 Nâng cấp CSDL Prisma**
-  - Thêm `zodiacSign`, `birthDate`, `numerologyLifePath` vào model `User`.
-- [ ] **2.2 Modal Cấu hình Ngày sinh & Cung Hoàng Đạo**
-  - Tự động tính Con số chủ đạo (Life Path) dựa trên ngày sinh.
-- [ ] **2.3 Tích hợp Chiêm tinh vào Lời giải Tarot**
-  - Đưa Cung Hoàng Đạo & Thần số học vào prompt Gemini để cá nhân hóa kết quả.
+- [x] **2.1 Nâng cấp CSDL Prisma**
+  - Thêm `zodiacSign`, `birthDate`, `numerologyLifePath` vào model `User` trong Prisma schema và database.
+- [x] **2.2 Modal Cấu hình Ngày sinh & Cung Hoàng Đạo (`UserProfileModal.jsx`)**
+  - Tự động tính Cung Hoàng Đạo & Con số chủ đạo (Life Path Number) dựa trên ngày sinh với xem trước thời gian thực.
+- [x] **2.3 Tích hợp Chiêm tinh vào Lời giải Tarot**
+  - Tự động kết nối Cung Hoàng Đạo & Thần số học của người dùng vào prompt Gemini AI để đưa ra góc nhìn cá nhân hóa tối đa.
 
 ---
 

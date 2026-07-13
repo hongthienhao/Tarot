@@ -5,6 +5,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
 import CardDictionaryModal from '../CardDictionaryModal';
 import AboutModal from '../AboutModal';
+import UserProfileModal from '../UserProfileModal';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -14,6 +15,7 @@ const Navbar = () => {
   // Modals visibility states
   const [isDictionaryOpen, setIsDictionaryOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const { isAuthenticated, user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -130,6 +132,16 @@ const Navbar = () => {
                       exit={{ opacity: 0, y: 10 }}
                       className="absolute right-0 mt-2 w-48 bg-mystic-dark border border-mystic-gold/20 rounded-xl overflow-hidden shadow-2xl z-30"
                     >
+                      <button
+                        onClick={() => {
+                          setIsProfileOpen(true);
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-mystic-gold transition-colors text-left cursor-pointer"
+                      >
+                        <User className="w-4 h-4 text-mystic-gold" />
+                        Hồ sơ & Chiêm tinh
+                      </button>
                       <Link
                         to="/history"
                         onClick={() => setIsUserMenuOpen(false)}
@@ -220,6 +232,16 @@ const Navbar = () => {
                       <User className="w-5 h-5 shrink-0" />
                       <span className="text-sm font-semibold truncate">{user?.name}</span>
                     </div>
+                    <button
+                      onClick={() => {
+                        setIsProfileOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3.5 bg-mystic-gold/10 text-mystic-gold rounded-xl transition-colors text-sm font-medium border border-mystic-gold/20 text-left cursor-pointer"
+                    >
+                      <User className="w-4.5 h-4.5 shrink-0" />
+                      Hồ sơ & Chiêm tinh
+                    </button>
                     <Link
                       to="/history"
                       onClick={() => setIsMobileMenuOpen(false)}
@@ -252,9 +274,10 @@ const Navbar = () => {
         )}
       </AnimatePresence>
 
-      {/* --- Card Meanings & About Modals --- */}
+      {/* --- Card Meanings, About & User Profile Modals --- */}
       <CardDictionaryModal isOpen={isDictionaryOpen} onClose={() => setIsDictionaryOpen(false)} />
       <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
     </>
   );
 };

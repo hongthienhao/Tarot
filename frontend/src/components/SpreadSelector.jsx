@@ -201,7 +201,7 @@ const DealingOverlay = ({ visible }) => {
 
 
 const SpreadSelector = () => {
-  const { isAuthenticated, token } = useAuthStore();
+  const { isAuthenticated, user, token } = useAuthStore();
   const [viewMode, setViewMode] = useState('grid');
   const [mode, setMode] = useState('select'); // 'select', 'confirm', 'drawing', 'reading'
   const [isFetching, setIsFetching] = useState(false);
@@ -450,7 +450,12 @@ const SpreadSelector = () => {
           message: msgToSend,
           history: currentHistory,
           readingId: currentReadingId,
-          persona: selectedPersona
+          persona: selectedPersona,
+          userProfile: user ? {
+            zodiacSign: user.zodiacSign,
+            birthDate: user.birthDate,
+            numerologyLifePath: user.numerologyLifePath ? `Con số chủ đạo ${user.numerologyLifePath}` : null
+          } : null
         })
       });
 

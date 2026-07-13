@@ -15,13 +15,16 @@ datasource db {
 
 
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  password  String
-  name      String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  readings  Reading[]
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  password           String
+  name               String?
+  birthDate          String?
+  zodiacSign         String?
+  numerologyLifePath Int?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  readings           Reading[]
 }
 
 model TarotCard {

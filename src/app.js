@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 
 import AppError from './utils/appError.js';
 import globalErrorHandler from './middlewares/errorMiddleware.js';
+import userRouter from './routes/userRoutes.js';
 import healthRouter from './routes/healthRoutes.js';
 import cardRouter from './routes/cardRoutes.js';
 import authRouter from './routes/authRoutes.js';
@@ -74,6 +75,7 @@ app.use('/api/v1/health', healthRouter);
 app.use('/api/v1/cards', cardRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/readings', readingRouter);
+app.use('/api/v1/users', userRouter);
 
 // Handle unhandled routes
 app.use((req, res, next) => {
