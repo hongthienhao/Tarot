@@ -36,8 +36,9 @@ const Navbar = () => {
 
   const navLinks = [
     { name: 'Trang Chủ', href: '/' },
-    { name: 'Khu Tarot 🔮', href: '/#spreads' },
-    { name: 'Khu Chiêm Tinh ✨', href: '/cosmic' },
+    { name: 'Tarot 🔮', href: '/tarot' },
+    { name: 'Chiêm Tinh ✨', href: '/astrology' },
+    { name: 'Bản Đồ 🌌', href: '/cosmic' },
     { name: 'Ý Nghĩa Bài 📖', href: '/#' },
     { name: 'Về Chúng Tôi 📜', href: '/#' },
   ];
@@ -53,30 +54,13 @@ const Navbar = () => {
       setIsAboutOpen(true);
       setIsMobileMenuOpen(false);
     } else if (link.href.startsWith('/#')) {
-      const targetId = link.href.split('#')[1];
-      
-      // If we are already on home page
-      if (location.pathname === '/') {
-        e.preventDefault();
-        const element = document.getElementById(targetId);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-        setIsMobileMenuOpen(false);
-      } else {
-        // If on another page, navigate home first, then scroll
-        e.preventDefault();
-        navigate('/');
-        setTimeout(() => {
-          const element = document.getElementById(targetId);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 150);
-        setIsMobileMenuOpen(false);
-      }
-    } else {
+      e.preventDefault();
       setIsMobileMenuOpen(false);
+    } else {
+      // Normal router link
+      setIsMobileMenuOpen(false);
+      navigate(link.href);
+      e.preventDefault(); // prevent default anchor since we navigate manually
     }
   };
 

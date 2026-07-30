@@ -16,11 +16,8 @@ const Hero = () => {
   const zodiacDetails = user?.birthDate ? getZodiacDetails(user.birthDate) : null;
   const lifePath = user?.birthDate ? calculateLifePathNumber(user.birthDate) : null;
 
-  const scrollToSpreads = () => {
-    const element = document.getElementById('spreads');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+  const goToTarot = () => {
+    navigate('/tarot');
   };
 
   return (
@@ -110,7 +107,7 @@ const Hero = () => {
             className="flex flex-col sm:flex-row justify-center items-center gap-4"
           >
             <motion.button 
-              onClick={scrollToSpreads}
+              onClick={goToTarot}
               whileHover={{ scale: 1.04, boxShadow: '0 0 30px rgba(212,175,55,0.4)' }}
               whileTap={{ scale: 0.96 }}
               className="w-full sm:w-auto px-9 py-4 bg-mystic-gold text-mystic-dark font-serif font-bold uppercase tracking-[0.2em] text-xs rounded-full transition-all cursor-pointer shadow-lg"
@@ -146,7 +143,7 @@ const Hero = () => {
 
       {/* Non-overlapping Relative Scroll Indicator */}
       <motion.div 
-        onClick={scrollToSpreads}
+        onClick={goToTarot}
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.6 }}
         transition={{ delay: 1.5, duration: 1 }}

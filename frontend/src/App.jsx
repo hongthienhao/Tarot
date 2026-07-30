@@ -12,6 +12,9 @@ import AudioController from './components/Layout/AudioController';
 import useSoundStore, { initAudioContext } from './store/useSoundStore';
 
 import CosmicSanctuaryPage from './pages/CosmicSanctuaryPage';
+import TarotPage from './pages/TarotPage';
+import AstrologyPage from './pages/AstrologyPage';
+
 
 function App() {
   const initSound = useSoundStore(state => state.initSound);
@@ -48,6 +51,8 @@ function App() {
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/tarot" element={<TarotPage />} />
+          <Route path="/astrology" element={<AstrologyPage />} />
           <Route path="/cosmic" element={<CosmicSanctuaryPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
