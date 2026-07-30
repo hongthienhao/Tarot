@@ -38,7 +38,7 @@ const ZodiacDailySection = () => {
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-mystic-gold/30 bg-mystic-gold/10 text-mystic-gold text-xs font-serif uppercase tracking-[0.3em] mb-4 shadow-[0_0_15px_rgba(212,175,55,0.15)]"
         >
           <Sparkles className="w-3.5 h-3.5 animate-spin-slow text-mystic-gold" />
-          <span>Vòng Xoay Vũ Trụ & Năng Lượng Chiêm Tinh</span>
+          <span>Vòng Xoay Vũ Trụ • Năng Lượng Chiêm Tinh Hàng Ngày</span>
         </motion.div>
 
         <h2 className="text-4xl md:text-5xl font-serif text-white font-bold mb-6 tracking-tight">
