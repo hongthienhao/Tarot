@@ -6,6 +6,9 @@ import React, { useState, useEffect, useRef } from 'react';
  * - Fetches image via XHR to avoid showing up in the Network "Img" filter.
  * - Renders to a <canvas> to hide the image source from the DOM.
  */
+const imageCache = new Map();
+const pendingRequests = new Map();
+
 const ProtectedImage = ({
   src,
   alt = 'Tarot Card',
@@ -28,35 +31,57 @@ const ProtectedImage = ({
     setIsLoading(true);
     setHasError(false);
 
-    fetch(src)
+    const drawImage = (bitmap) => {
+      if (!isMounted) return;
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0);
+      }
+      setIsLoading(false);
+    };
+
+    // 1. Check if already cached
+    if (imageCache.has(src)) {
+      drawImage(imageCache.get(src));
+      return;
+    }
+
+    // 2. Check if currently fetching
+    if (pendingRequests.has(src)) {
+      pendingRequests.get(src)
+        .then(bitmap => {
+          if (isMounted) drawImage(bitmap);
+        })
+        .catch(err => {
+          if (isMounted) {
+            setHasError(true);
+            setIsLoading(false);
+            if (onError) onError(err);
+          }
+        });
+      return;
+    }
+
+    // 3. Fetch for the first time
+    const fetchPromise = fetch(src)
       .then(response => {
         if (!response.ok) throw new Error('Network response was not ok');
         return response.blob();
       })
-      .then(blob => {
-        if (!isMounted) return;
-        const objectUrl = URL.createObjectURL(blob);
-        const img = new Image();
-        img.onload = () => {
-          if (!isMounted) return;
-          const canvas = canvasRef.current;
-          if (canvas) {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-          }
-          URL.revokeObjectURL(objectUrl);
-          setIsLoading(false);
-        };
-        img.onerror = () => {
-          if (isMounted) {
-            setHasError(true);
-            setIsLoading(false);
-            if (onError) onError(new Error('Image failed to load'));
-          }
-        };
-        img.src = objectUrl;
+      .then(blob => createImageBitmap(blob))
+      .then(bitmap => {
+        imageCache.set(src, bitmap);
+        return bitmap;
+      });
+
+    pendingRequests.set(src, fetchPromise);
+
+    fetchPromise
+      .then(bitmap => {
+        if (isMounted) drawImage(bitmap);
       })
       .catch(err => {
         if (isMounted) {
@@ -64,6 +89,9 @@ const ProtectedImage = ({
           setIsLoading(false);
           if (onError) onError(err);
         }
+      })
+      .finally(() => {
+        pendingRequests.delete(src);
       });
 
     return () => {
