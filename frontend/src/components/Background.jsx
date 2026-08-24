@@ -40,8 +40,6 @@ const Background = () => {
         ))}
       </div>
 
-      {/* Noise Texture */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none mix-blend-overlay bg-[url('https://www.transparenttextures.com/patterns/asfalt-dark.png')]" />
     </div>
   );
 };
