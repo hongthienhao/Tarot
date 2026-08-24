@@ -1,12 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye } from 'lucide-react';
 import SpreadSelector from '../components/SpreadSelector';
 import BackendWarmupOverlay from '../components/BackendWarmupOverlay';
 import useBackendWarmup from '../hooks/useBackendWarmup';
+import { logDrawEvent, setFlowState, DE, DRAW_DIAGNOSTICS } from '../utils/drawDiagnostics';
 
 const TarotPage = () => {
   const { status, elapsedSeconds, errorMessage, retry } = useBackendWarmup();
+
+  useEffect(() => {
+    if (DRAW_DIAGNOSTICS) {
+      logDrawEvent(DE.DRAW_FLOW_START, { note: 'TarotPage mounted' });
+      setFlowState('TAROT_PAGE');
+    }
+  }, []);
 
   // 'idle'    → request in-flight, < 300ms elapsed — render nothing special (avoid flicker)
   // 'warming' → backend still loading after 300ms — show mystical overlay
