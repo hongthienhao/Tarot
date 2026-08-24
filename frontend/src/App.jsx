@@ -1,25 +1,27 @@
-import React, { useEffect } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Navbar from './components/Layout/Navbar';
 import Footer from './components/Layout/Footer';
 import Background from './components/Background';
-import Home from './pages/Home';
-import LoginPage from './pages/LoginPage';
-
-import HistoryPage from './pages/HistoryPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AudioController from './components/Layout/AudioController';
-import useSoundStore, { initAudioContext } from './store/useSoundStore';
-
-import CosmicSanctuaryPage from './pages/CosmicSanctuaryPage';
-import TarotPage from './pages/TarotPage';
-import AstrologyPage from './pages/AstrologyPage';
-import AboutPage from './pages/AboutPage';
-import CardDictionaryPage from './pages/CardDictionaryPage';
-import AdminPage from './pages/AdminPage';
-import ProfilePage from './pages/ProfilePage';
+import PageLoading from './components/PageLoading';
 import CosmicAuthModal from './components/CosmicAuthModal';
+import useSoundStore, { initAudioContext } from './store/useSoundStore';
 import useAuthStore from './store/useAuthStore';
+
+// ─── Lazy-loaded pages (each becomes its own JS chunk) ───────────────────────
+const Home                = lazy(() => import('./pages/Home'));
+const LoginPage           = lazy(() => import('./pages/LoginPage'));
+const TarotPage           = lazy(() => import('./pages/TarotPage'));
+const AstrologyPage       = lazy(() => import('./pages/AstrologyPage'));
+const CosmicSanctuaryPage = lazy(() => import('./pages/CosmicSanctuaryPage'));
+const AboutPage           = lazy(() => import('./pages/AboutPage'));
+const CardDictionaryPage  = lazy(() => import('./pages/CardDictionaryPage'));
+const ProfilePage         = lazy(() => import('./pages/ProfilePage'));
+const HistoryPage         = lazy(() => import('./pages/HistoryPage'));
+const AdminPage           = lazy(() => import('./pages/AdminPage'));
+// ─────────────────────────────────────────────────────────────────────────────
 
 
 function App() {
@@ -63,23 +65,25 @@ function App() {
       <Navbar />
       
       <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/tarot" element={<TarotPage />} />
-          <Route path="/astrology" element={<AstrologyPage />} />
-          <Route path="/cosmic" element={<CosmicSanctuaryPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/cards" element={<CardDictionaryPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          
-          <Route element={<ProtectedRoute />}>
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/history" element={<HistoryPage />} />
-          </Route>
+        <Suspense fallback={<PageLoading />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/tarot" element={<TarotPage />} />
+            <Route path="/astrology" element={<AstrologyPage />} />
+            <Route path="/cosmic" element={<CosmicSanctuaryPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/cards" element={<CardDictionaryPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            
+            <Route element={<ProtectedRoute />}>
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/history" element={<HistoryPage />} />
+            </Route>
 
-          {/* Admin Route — guard implemented inside AdminPage */}
-          <Route path="/admin" element={<AdminPage />} />
-        </Routes>
+            {/* Admin Route — guard implemented inside AdminPage */}
+            <Route path="/admin" element={<AdminPage />} />
+          </Routes>
+        </Suspense>
       </main>
 
       <Footer />
