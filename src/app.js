@@ -46,6 +46,26 @@ app.use('/api', limiter);
 // Body parser, reading data from body into req.body
 app.use(express.json({ limit: '10kb' }));
 
+// Middleware to protect static files (Hotlink Protection)
+app.use('/assets', (req, res, next) => {
+  const referer = req.get('referer');
+  const allowedDomains = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:4173',
+    'https://mystictarotth.vercel.app'
+  ];
+
+  // If there's no referer (direct access) or referer is not in allowed domains
+  if (!referer || !allowedDomains.some(domain => referer.startsWith(domain))) {
+    return res.status(403).json({
+      status: 'fail',
+      message: 'Access Denied: Direct access to this resource is not allowed.'
+    });
+  }
+  next();
+});
+
 // Serve static files from 'public' directory
 app.use(express.static('public'));
 

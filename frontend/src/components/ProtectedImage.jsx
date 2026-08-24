@@ -1,45 +1,75 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * ProtectedImage component:
- * Optimized version for fast loading while maintaining basic protection.
- * 1. Uses native <img> tag for optimal browser caching, parallel downloading and lazy loading.
- * 2. Applies an invisible overlay over the image to block right-clicks and drag-and-drop.
- * 3. Prevents context menu events.
+ * - Blocks right-clicks and drag-and-drop.
+ * - Fetches image via XHR to avoid showing up in the Network "Img" filter.
+ * - Renders to a <canvas> to hide the image source from the DOM.
  */
 const ProtectedImage = ({
   src,
   alt = 'Tarot Card',
   className = '',
   style = {},
-  showWatermark, // Kept for prop compatibility but ignored
-  watermarkText, // Kept for prop compatibility but ignored
+  showWatermark,
+  watermarkText,
   onError,
   onClick,
   ...restProps
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const canvasRef = useRef(null);
 
-  const handleContextMenu = (e) => {
-    e.preventDefault();
-    return false;
-  };
+  useEffect(() => {
+    let isMounted = true;
+    if (!src) return;
 
-  const handleDragStart = (e) => {
-    e.preventDefault();
-    return false;
-  };
+    setIsLoading(true);
+    setHasError(false);
 
-  const handleLoad = () => {
-    setIsLoading(false);
-  };
+    fetch(src)
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.blob();
+      })
+      .then(blob => {
+        if (!isMounted) return;
+        const objectUrl = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          if (!isMounted) return;
+          const canvas = canvasRef.current;
+          if (canvas) {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+          }
+          URL.revokeObjectURL(objectUrl);
+          setIsLoading(false);
+        };
+        img.onerror = () => {
+          if (isMounted) {
+            setHasError(true);
+            setIsLoading(false);
+            if (onError) onError(new Error('Image failed to load'));
+          }
+        };
+        img.src = objectUrl;
+      })
+      .catch(err => {
+        if (isMounted) {
+          setHasError(true);
+          setIsLoading(false);
+          if (onError) onError(err);
+        }
+      });
 
-  const handleError = (err) => {
-    setHasError(true);
-    setIsLoading(false);
-    if (onError) onError(err);
-  };
+    return () => {
+      isMounted = false;
+    };
+  }, [src, onError]);
 
   return (
     <div
@@ -49,12 +79,12 @@ const ProtectedImage = ({
         WebkitUserDrag: 'none',
         ...style,
       }}
-      onContextMenu={handleContextMenu}
-      onDragStart={handleDragStart}
+      onContextMenu={e => e.preventDefault()}
+      onDragStart={e => e.preventDefault()}
       onClick={onClick}
       {...restProps}
     >
-      {/* Loading Skeleton indicator */}
+      {/* Loading Skeleton */}
       {isLoading && !hasError && (
         <div className="absolute inset-0 bg-mystic-dark/80 animate-pulse flex items-center justify-center z-10">
           <div className="w-6 h-6 border-2 border-mystic-gold/40 border-t-mystic-gold rounded-full animate-spin" />
@@ -68,21 +98,14 @@ const ProtectedImage = ({
         </div>
       )}
 
-      {/* Main Image */}
-      {src && !hasError && (
-        <img
-          src={src}
-          alt={alt}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover pointer-events-none"
-          draggable="false"
-          onLoad={handleLoad}
-          onError={handleError}
-        />
-      )}
+      {/* Canvas rendering instead of img */}
+      <canvas
+        ref={canvasRef}
+        className={`w-full h-full object-cover pointer-events-none ${isLoading || hasError ? 'opacity-0' : 'opacity-100'}`}
+        style={{ display: 'block' }}
+      />
 
-      {/* Protection Overlay - Invisible layer that intercepts clicks */}
+      {/* Invisible overlay */}
       <div className="absolute inset-0 z-20 pointer-events-auto" />
     </div>
   );

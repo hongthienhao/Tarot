@@ -14,6 +14,7 @@ import ZodiacIcon from '../components/ZodiacIcon';
 import CosmicMarkdown from '../components/CosmicMarkdown';
 import CheckinWidget from '../components/CheckinWidget';
 import DailyTarotModal from '../components/DailyTarotModal';
+import ProtectedImage from '../components/ProtectedImage';
 import {
   getZodiacDetails,
   calculateLifePathNumber,
@@ -589,7 +590,7 @@ const ProfilePage = () => {
                       {reading.readingCards.map((rc, idx) => (
                         <div key={rc.id || idx} className="shrink-0 text-center">
                           <div className="w-12 h-20 rounded-lg overflow-hidden border border-mystic-gold/40 shadow-sm">
-                            <img
+                            <ProtectedImage
                               src={rc.card?.imagePath || rc.card?.image}
                               alt=""
                               className={`w-full h-full object-cover ${rc.isReversed ? 'rotate-180' : ''}`}
@@ -795,7 +796,7 @@ const ProfilePage = () => {
                     {selectedReading.readingCards.map((rc) => (
                       <div key={rc.id} className="p-3 rounded-2xl bg-white/3 border border-white/8 text-center space-y-2">
                         <div className="w-20 h-32 mx-auto rounded-xl overflow-hidden border border-mystic-gold/40 shadow-md">
-                          <img
+                          <ProtectedImage
                             src={rc.card?.imagePath || rc.card?.image}
                             alt=""
                             className={`w-full h-full object-cover ${rc.isReversed ? 'rotate-180' : ''}`}

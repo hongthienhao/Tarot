@@ -23,6 +23,7 @@ import apiClient from '../api/client';
 import useAuthStore from '../store/useAuthStore';
 import ChatInterface from '../components/ChatInterface';
 import SoulAnalytics from '../components/SoulAnalytics';
+import ProtectedImage from '../components/ProtectedImage';
 
 
 const parseInlineFormatting = (text) => {
@@ -632,7 +633,7 @@ const HistoryPage = () => {
                             className="w-10 h-14 rounded-md border border-mystic-gold/20 overflow-hidden shadow-lg transform group-hover:-translate-y-2 transition-transform duration-300"
                             style={{ transitionDelay: `${idx * 50}ms` }}
                           >
-                            <img src={rc.card.imagePath} className="w-full h-full object-cover" alt="" />
+                            <ProtectedImage src={rc.card.imagePath} className="w-full h-full object-cover" alt="" />
                           </div>
                         ))}
                         {reading.readingCards.length > 5 && (
@@ -745,7 +746,7 @@ const HistoryPage = () => {
                              <Hash className="w-3 h-3" /> Position {rc.position}
                           </div>
                           <div className="w-[180px] md:w-[240px] aspect-[1/1.7] rounded-[1.5rem] md:rounded-[2rem] overflow-hidden border-2 border-mystic-gold/20 shadow-2xl relative group">
-                            <img 
+                            <ProtectedImage 
                               src={rc.card.imagePath} 
                               alt={rc.card.name} 
                               className={`w-full h-full object-cover ${rc.isReversed ? 'rotate-180' : ''}`}
