@@ -15,7 +15,6 @@ import {
   TrendingUp,
   Award
 } from 'lucide-react';
-import { getProtectedImageUrl } from '../utils/imageUrl';
 
 const SoulAnalytics = ({ readings = [] }) => {
   // ── 1. Calculate Analytics ──
@@ -404,7 +403,7 @@ const SoulAnalytics = ({ readings = [] }) => {
               {/* Card visual showcase */}
               <div className="w-[180px] md:w-[240px] aspect-[1/1.7] rounded-[2rem] overflow-hidden border-4 border-mystic-gold/30 shadow-[0_20px_40px_rgba(0,0,0,0.8)] shrink-0 relative group">
                 <img 
-                  src={getProtectedImageUrl(stats.mostDrawn.card.imagePath)} 
+                  src={stats.mostDrawn.card.imagePath} 
                   className="w-full h-full object-cover" 
                   alt={stats.mostDrawn.card.name} 
                 />

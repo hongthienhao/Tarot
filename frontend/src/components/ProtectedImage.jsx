@@ -1,5 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import { getProtectedImageUrl } from '../utils/imageUrl';
+import React, { useState } from 'react';
 
 /**
  * ProtectedImage component:
@@ -42,8 +41,6 @@ const ProtectedImage = ({
     if (onError) onError(err);
   };
 
-  const finalSrc = useMemo(() => getProtectedImageUrl(src), [src]);
-
   return (
     <div
       className={`relative overflow-hidden select-none ${className}`}
@@ -72,9 +69,9 @@ const ProtectedImage = ({
       )}
 
       {/* Main Image */}
-      {finalSrc && !hasError && (
+      {src && !hasError && (
         <img
-          src={finalSrc}
+          src={src}
           alt={alt}
           loading="lazy"
           decoding="async"

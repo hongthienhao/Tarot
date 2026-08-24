@@ -13,7 +13,6 @@ import authRouter from './routes/authRoutes.js';
 import readingRouter from './routes/readingRoutes.js';
 import checkinRouter from './routes/checkinRoutes.js';
 import adminRouter from './routes/adminRoutes.js';
-import imageRouter from './routes/imageRoutes.js';
 import { setupSwagger } from './config/swagger.js';
 
 const app = express();
@@ -87,7 +86,6 @@ app.use('/api/v1/readings', readingRouter);
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/checkin', checkinRouter);
 app.use('/api/v1/admin', adminRouter);
-app.use('/api/v1/images', imageRouter);
 
 // Handle unhandled routes
 app.use((req, res, next) => {

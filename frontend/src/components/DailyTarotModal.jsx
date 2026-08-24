@@ -6,7 +6,6 @@ import useAuthStore from '../store/useAuthStore';
 import MysticStar from './MysticStar';
 import AuthRequiredModal from './AuthRequiredModal';
 import CosmicMarkdown from './CosmicMarkdown';
-import { getProtectedImageUrl } from '../utils/imageUrl';
 
 const COSMIC_WAITING_PHRASES = [
   'Đang kết nối năng lượng với dòng chảy Vũ trụ...',
@@ -279,7 +278,7 @@ const DailyTarotModal = ({ isOpen, onClose }) => {
                 onClick={handleDrawDailyCard}
                 className="w-44 h-72 rounded-2xl border-2 border-mystic-gold/40 shadow-[0_0_30px_rgba(212,175,55,0.2)] overflow-hidden cursor-pointer relative group"
               >
-                <img src={getProtectedImageUrl("/assets/cards/card_back.jpeg")} className="w-full h-full object-cover" alt="Card back" />
+                <img src="/assets/cards/card_back.jpeg" className="w-full h-full object-cover" alt="Card back" />
                 <div className="absolute inset-0 bg-mystic-gold/10 group-hover:bg-mystic-gold/25 transition-all flex flex-col items-center justify-center p-4">
                   <Sparkles className="w-8 h-8 text-mystic-gold mb-2 animate-pulse" />
                   <span className="text-xs font-serif font-bold gold-text uppercase tracking-widest">

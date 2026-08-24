@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playSFX } from '../store/useSoundStore';
 import ProtectedImage from './ProtectedImage';
-import { getProtectedImageUrl } from '../utils/imageUrl';
 
 // Rune symbols for the float-up particle effect (Phase 3)
 const RUNE_CHARS = ['✦', '✧', '⚝', '✴', '★', '✶', '⋆', '✺'];
@@ -102,7 +101,7 @@ const TarotCard = ({ card, index, onFlip, isRevealed: controlledIsRevealed, isSe
         {/* Back face */}
         <div className="absolute inset-0 backface-hidden rounded-2xl border-2 border-mystic-gold/40 bg-mystic-dark flex items-center justify-center overflow-hidden">
           <ProtectedImage
-            src={getProtectedImageUrl("/assets/cards/card_back.jpeg")}
+            src="/assets/cards/card_back.jpeg"
             alt="Tarot Card Back"
             className="w-full h-full object-cover"
             showWatermark={false}

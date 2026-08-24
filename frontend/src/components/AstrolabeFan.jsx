@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Compass, Sparkles, Check, X, Info } from 'lucide-react';
 import useSoundStore from '../store/useSoundStore';
-import { getProtectedImageUrl } from '../utils/imageUrl';
 
 const AstrolabeFan = ({ targetQuantity, onSelect }) => {
   const TOTAL_CARDS = 78;
@@ -305,7 +304,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                 {isDrawn && (
                   <>
                     <img 
-                      src={getProtectedImageUrl("/assets/cards/card_back.jpeg")} 
+                      src="/assets/cards/card_back.jpeg" 
                       alt="Drawn Card" 
                       className="w-full h-full object-cover"
                     />
@@ -373,7 +372,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                     } bg-mystic-dark`}
                   >
                     <img
-                      src={getProtectedImageUrl("/assets/cards/card_back.jpeg")}
+                      src="/assets/cards/card_back.jpeg"
                       alt="Tarot Card Back"
                       className="w-full h-full object-cover pointer-events-none select-none"
                       draggable={false}

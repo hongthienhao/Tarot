@@ -4,7 +4,6 @@ import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Acti
 import apiClient from '../api/client';
 import useAuthStore from '../store/useAuthStore';
 import useSoundStore, { playSFX } from '../store/useSoundStore';
-import { getProtectedImageUrl } from '../utils/imageUrl';
 import TarotCard from './TarotCard';
 import ChatInterface from './ChatInterface';
 import AIPersonaSelector from './AIPersonaSelector';
@@ -98,7 +97,7 @@ const VORTEX_CARDS = Array.from({ length: 16 }, (_, i) => {
 const EFFECTS = ['riffle','fan','overhand','vortex'];
 const CC = 'absolute w-32 h-52 rounded-xl overflow-hidden border border-mystic-gold/40 shadow-2xl';
 const CS = { left:0, top:0 };
-const CardImg = () => (<><img src={getProtectedImageUrl("/assets/cards/card_back.jpeg")} className="w-full h-full object-cover" alt="" /><div className="absolute inset-0 bg-gradient-to-b from-mystic-gold/5 to-mystic-dark/20" /></>);
+const CardImg = () => (<><img src="/assets/cards/card_back.jpeg" className="w-full h-full object-cover" alt="" /><div className="absolute inset-0 bg-gradient-to-b from-mystic-gold/5 to-mystic-dark/20" /></>);
 const Sparkle = () => (
   <motion.div className="absolute inset-[-24px] rounded-full pointer-events-none" style={{filter:'blur(14px)'}}
     animate={{backgroundColor:['rgba(212,175,55,0)','rgba(212,175,55,0.3)','rgba(212,175,55,0)']}}
