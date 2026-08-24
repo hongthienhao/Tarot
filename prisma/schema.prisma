@@ -1,0 +1,135 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                 String            @id @default(uuid())
+  email              String            @unique        // Luôn lowercase, trimmed
+  googleId           String?           @unique
+  fullName           String            @default("")   // Tên đầy đủ người dùng
+  name               String?                          // Alias tương thích ngược
+  avatar             String?
+  birthDate          String?
+  gender             Gender?
+  city               String?
+  zodiacSign         String?                          // Giữ nguyên cho Chiêm Tinh
+  numerologyLifePath Int?                             // Giữ nguyên cho Thần Số Học
+  role               Role              @default(USER)
+  starPoints         Int               @default(50)
+  isBanned           Boolean           @default(false)
+  bannedAt           DateTime?                        // Thời điểm bị khóa
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  readings           Reading[]
+  checkins           Checkin[]
+  transactions       StarTransaction[] @relation("UserTransactions")
+}
+
+model StarTransaction {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation("UserTransactions", fields: [userId], references: [id], onDelete: Cascade)
+  amount      Int             // Dương = nhận, Âm = trừ
+  type        TransactionType
+  reason      String?
+  performedBy String          // "SYSTEM" hoặc admin userId
+  createdAt   DateTime        @default(now())
+}
+
+model Checkin {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String   // "YYYY-MM-DD" theo Asia/Ho_Chi_Minh
+  reward    Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])   // Chống duplicate và race condition
+}
+
+model Blacklist {
+  id        String   @id @default(uuid())
+  email     String   @unique  // Luôn lowercase, trimmed
+  reason    String?
+  bannedBy  String
+  createdAt DateTime @default(now())
+}
+
+model TarotCard {
+  id              String        @id @default(uuid())
+  name            String        @unique
+  arcana          Arcana
+  suit            Suit?
+  number          Int
+  meaningUpright  String
+  meaningReversed String
+  imagePath       String
+  readingCards    ReadingCard[]
+}
+
+model Reading {
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  spreadName     String?
+  userQuestion   String?
+  interpretation String?       @db.Text
+  notes          String?
+  tags           String[]
+  isDaily        Boolean       @default(false)
+  persona        String?
+  readingCards   ReadingCard[]
+}
+
+model ReadingCard {
+  id         String    @id @default(uuid())
+  readingId  String
+  reading    Reading   @relation(fields: [readingId], references: [id], onDelete: Cascade)
+  cardId     String
+  card       TarotCard @relation(fields: [cardId], references: [id])
+  position   Int
+  isReversed Boolean   @default(false)
+
+  @@unique([readingId, position])
+}
+
+enum Arcana {
+  MAJOR
+  MINOR
+}
+
+enum Suit {
+  WANDS
+  CUPS
+  SWORDS
+  PENTACLES
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum TransactionType {
+  WELCOME_BONUS
+  CHECKIN_REWARD
+  ADMIN_GRANT
+  ADMIN_DEDUCT
+  DRAW_COST
+  REFUND
+}

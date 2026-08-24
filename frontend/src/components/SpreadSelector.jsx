@@ -1,0 +1,896 @@
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, Eye, Zap, LayoutGrid, Layers, Columns, Menu as ListIcon, Activity, ChevronLeft, RefreshCw, BookOpen, Hash, BrainCircuit, Star, Shuffle, Save, Copy, Check } from 'lucide-react';
+import apiClient from '../api/client';
+import useAuthStore from '../store/useAuthStore';
+import useSoundStore, { playSFX } from '../store/useSoundStore';
+import { getProtectedImageUrl } from '../utils/imageUrl';
+import TarotCard from './TarotCard';
+import ChatInterface from './ChatInterface';
+import AIPersonaSelector from './AIPersonaSelector';
+import ProtectedImage from './ProtectedImage';
+import InsufficientStarsModal from './InsufficientStarsModal';
+import DrawConfirmationModal from './DrawConfirmationModal';
+import AuthRequiredModal from './AuthRequiredModal';
+import MysticStar from './MysticStar';
+import AstrolabeFan from './AstrolabeFan';
+
+const spreads = [
+  {
+    id: 1,
+    name: 'Một Lá Bài',
+    tagline: 'Nhanh, trực tiếp',
+    description: 'Tìm kiếm sự hướng dẫn nhanh chóng cho những vấn đề cụ thể hoặc lấy cảm hứng cho ngày mới.',
+    icon: <Sparkles className="w-8 h-8" />,
+    color: 'from-mystic-purple',
+    delay: 0.1,
+    quantity: 1,
+  },
+  {
+    id: 2,
+    name: 'Hai Lá Bài',
+    tagline: 'So sánh / Lựa chọn',
+    description: 'Phân tích hai khía cạnh của một vấn đề hoặc cân nhắc giữa hai lựa chọn khác nhau.',
+    icon: <Columns className="w-8 h-8" />,
+    color: 'from-mystic-wine',
+    delay: 0.15,
+    quantity: 2,
+  },
+  {
+    id: 3,
+    name: 'Ba Lá Bài',
+    tagline: 'Phổ biến nhất',
+    description: 'Khám phá sự kết nối giữa Quá khứ, Hiện tại và Tương lai để có cái nhìn toàn cảnh.',
+    icon: <Eye className="w-8 h-8" />,
+    color: 'from-mystic-purple',
+    delay: 0.2,
+    quantity: 3,
+  },
+  {
+    id: 5,
+    name: 'Năm Lá Bài',
+    tagline: 'Phân tích vấn đề',
+    description: 'Phân tích sâu sắc các khía cạnh của một tình huống hoặc mối quan hệ phức tạp.',
+    icon: <Zap className="w-8 h-8" />,
+    color: 'from-mystic-wine',
+    delay: 0.25,
+    quantity: 5,
+  },
+  {
+    id: 7,
+    name: 'Bảy Lá Bài',
+    tagline: 'Mở rộng góc nhìn',
+    description: 'Đào sâu vào các yếu tố ảnh hưởng và tìm kiếm giải pháp tối ưu cho vấn đề.',
+    icon: <Layers className="w-8 h-8" />,
+    color: 'from-mystic-purple',
+    delay: 0.3,
+    quantity: 7,
+  },
+  {
+    id: 10,
+    name: '10 Lá Bài',
+    tagline: 'Celtic Cross (Sâu & đầy đủ)',
+    description: 'Trải bài kinh điển giúp thấu hiểu toàn diện về vận mệnh và những yếu tố ẩn giấu.',
+    icon: <LayoutGrid className="w-8 h-8" />,
+    color: 'from-mystic-gold',
+    delay: 0.35,
+    quantity: 10,
+  },
+];
+
+// ── Shuffle effect data (pre-computed at module level, no Math.random in render) ──
+const RIFFLE_CARDS = Array.from({ length: 20 }, (_, i) => {
+  const isLeft = i < 10, idx = i % 10;
+  return { id: i, isLeft, stackX: isLeft ? idx*0.4-2 : idx*-0.4+2, stackY: idx*-0.8,
+    stackRot: isLeft ? -1+idx*0.1 : 1-idx*0.1, cascadeDelay: 0.35+idx*0.032+(isLeft?0:0.016) };
+});
+const FAN_CARDS = Array.from({ length: 12 }, (_, i) => {
+  const a = (i/12)*2*Math.PI;
+  return { id: i, tx: Math.cos(a)*135, ty: Math.sin(a)*135, rot: (i/12)*360, delay: i*0.06 };
+});
+const OVERHAND_CARDS = Array.from({ length: 18 }, (_, i) => ({
+  id: i, delay: i*0.065, stackY: -i*0.7, stackX: i*0.25-2,
+}));
+const VORTEX_CARDS = Array.from({ length: 16 }, (_, i) => {
+  const a = (i/16)*2*Math.PI, r = 55+i*9;
+  return { id: i, tx: Math.cos(a)*r, ty: Math.sin(a)*r, rot: 360+i*50, delay: i*0.05 };
+});
+const EFFECTS = ['riffle','fan','overhand','vortex'];
+const CC = 'absolute w-32 h-52 rounded-xl overflow-hidden border border-mystic-gold/40 shadow-2xl';
+const CS = { left:0, top:0 };
+const CardImg = () => (<><img src={getProtectedImageUrl("/assets/cards/card_back.jpeg")} className="w-full h-full object-cover" alt="" /><div className="absolute inset-0 bg-gradient-to-b from-mystic-gold/5 to-mystic-dark/20" /></>);
+const Sparkle = () => (
+  <motion.div className="absolute inset-[-24px] rounded-full pointer-events-none" style={{filter:'blur(14px)'}}
+    animate={{backgroundColor:['rgba(212,175,55,0)','rgba(212,175,55,0.3)','rgba(212,175,55,0)']}}
+    transition={{duration:0.35,delay:1.08,ease:'easeOut'}} />
+);
+
+const RiffleEffect = () => (
+  <div className="relative pointer-events-none" style={{width:128,height:208}}>
+    {RIFFLE_CARDS.map(c => (
+      <motion.div key={c.id} className={CC} style={CS}
+        initial={{x:c.stackX,y:c.stackY,rotate:c.stackRot,zIndex:c.isLeft?c.id:20-c.id}}
+        animate={{
+          x:[c.stackX,c.isLeft?-105+c.stackX:105+c.stackX,c.isLeft?-105+c.stackX:105+c.stackX,c.stackX*0.3,0],
+          y:[c.stackY,c.stackY-8,c.stackY-8,c.stackY*0.5,0],
+          rotate:[c.stackRot,c.isLeft?c.stackRot-8:c.stackRot+8,c.isLeft?c.stackRot-8:c.stackRot+8,c.stackRot*0.4,0],
+          zIndex:[c.isLeft?c.id:20-c.id,c.isLeft?c.id:20-c.id,c.id*2,c.id*2,c.id],
+        }}
+        transition={{duration:1.4,delay:c.cascadeDelay,times:[0,0.22,0.5,0.75,1],ease:[0.25,0.1,0.25,1],zIndex:{duration:0,delay:c.cascadeDelay+0.7}}}
+      ><CardImg /></motion.div>
+    ))}
+    <Sparkle />
+  </div>
+);
+
+const FanEffect = () => (
+  <div className="relative pointer-events-none" style={{width:128,height:208}}>
+    {FAN_CARDS.map(c => (
+      <motion.div key={c.id} className={CC} style={CS}
+        initial={{x:0,y:0,rotate:0,opacity:0.9,scale:1,zIndex:c.id}}
+        animate={{
+          x:[0,c.tx,c.tx*0.4,0], y:[0,c.ty,c.ty*0.4,0],
+          rotate:[0,c.rot,c.rot+180,720], opacity:[0.9,1,0.8,0], scale:[1,0.7,0.9,2],
+        }}
+        transition={{duration:1.45,delay:c.delay,times:[0,0.35,0.65,1],ease:'easeInOut'}}
+      ><CardImg /></motion.div>
+    ))}
+    <Sparkle />
+  </div>
+);
+
+const OverhandEffect = () => (
+  <div className="relative pointer-events-none" style={{width:128,height:208}}>
+    {OVERHAND_CARDS.map(c => (
+      <motion.div key={c.id} className={CC} style={CS}
+        initial={{x:c.stackX,y:c.stackY,rotate:0,opacity:0.9,zIndex:18-c.id}}
+        animate={{
+          x:[c.stackX,c.stackX,110+c.id*0.7,0],
+          y:[c.stackY,c.stackY-70,-c.id*0.5,0],
+          rotate:[0,-10,6,0], opacity:[0.9,1,1,0.9],
+          zIndex:[18-c.id,18-c.id,c.id+20,c.id],
+        }}
+        transition={{duration:1.4,delay:c.delay,times:[0,0.28,0.65,1],ease:[0.25,0.46,0.45,0.94],zIndex:{duration:0,delay:c.delay+0.38}}}
+      ><CardImg /></motion.div>
+    ))}
+    <Sparkle />
+  </div>
+);
+
+const VortexEffect = () => (
+  <div className="relative pointer-events-none" style={{width:128,height:208}}>
+    {VORTEX_CARDS.map(c => (
+      <motion.div key={c.id} className={CC} style={CS}
+        initial={{x:0,y:0,rotate:0,opacity:0.9,scale:1,zIndex:c.id}}
+        animate={{
+          x:[0,c.tx*0.5,c.tx,c.tx*0.2,0], y:[0,c.ty*0.5,c.ty,c.ty*0.2,0],
+          rotate:[0,c.rot*0.4,c.rot,c.rot*1.6,c.rot*2.2],
+          opacity:[0.9,1,0.85,0.4,0], scale:[1,1.1,0.8,0.5,1.8],
+        }}
+        transition={{duration:1.45,delay:c.delay,times:[0,0.25,0.5,0.75,1],ease:[0.25,0.1,0.25,1]}}
+      ><CardImg /></motion.div>
+    ))}
+    <Sparkle />
+  </div>
+);
+
+const DealingOverlay = ({ visible }) => {
+  const effectRef = useRef(null);
+  if (visible && !effectRef.current) effectRef.current = EFFECTS[Math.floor(Math.random()*EFFECTS.length)];
+  if (!visible) effectRef.current = null;
+  const eff = effectRef.current;
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0,transition:{duration:0.4}}}
+          transition={{duration:0.25}}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-mystic-dark/95 backdrop-blur-md"
+          style={{cursor:'none',userSelect:'none'}}
+          onPointerDown={e=>{e.stopPropagation();e.preventDefault();}}
+          onPointerMove={e=>{e.stopPropagation();e.preventDefault();}}
+          onClick={e=>{e.stopPropagation();e.preventDefault();}}
+        >
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <motion.div animate={{scale:[1,1.35,1],opacity:[0.15,0.45,0.15]}} transition={{duration:1.5,repeat:Infinity,ease:'easeInOut'}}
+              className="w-80 h-80 bg-mystic-gold/20 rounded-full blur-[100px]" />
+          </div>
+          {eff==='riffle'   && <RiffleEffect />}
+          {eff==='fan'      && <FanEffect />}
+          {eff==='overhand' && <OverhandEffect />}
+          {eff==='vortex'   && <VortexEffect />}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+
+const SpreadSelector = () => {
+  const { isAuthenticated, user, token, updateStarPoints } = useAuthStore();
+  const [viewMode, setViewMode] = useState('grid');
+  const [mode, setMode] = useState('select'); // 'select', 'confirm', 'drawing', 'reading'
+  const [isFetching, setIsFetching] = useState(false);
+  const [readingResult, setReadingResult] = useState(null);
+  const [activeCard, setActiveCard] = useState(null);
+  const [pendingSpread, setPendingSpread] = useState(null);
+  const [isShuffling, setIsShuffling] = useState(false);
+
+  // AI States
+  const [selectedPersona, setSelectedPersona] = useState('empathetic_healer');
+  const [chatInput, setChatInput] = useState('');
+  const [chatHistory, setChatHistory] = useState([]);
+  const [aiStatus, setAiStatus] = useState('idle'); // idle, loading, streaming, done, error
+
+  // Drawing flow states
+  const [availableCards, setAvailableCards] = useState([]);
+  const [drawnCards, setDrawnCards] = useState([]);
+  const [revealedCardIds, setRevealedCardIds] = useState(new Set());
+  const [targetQuantity, setTargetQuantity] = useState(0);
+  const [selectedFanIndices, setSelectedFanIndices] = useState(new Set());
+  const [isHoveringFan, setIsHoveringFan] = useState(false);
+  const [currentReadingId, setCurrentReadingId] = useState(null);
+  const [isAutoFlipping, setIsAutoFlipping] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isInsufficientModalOpen, setIsInsufficientModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  const handleCopySpread = () => {
+    if (!drawnCards || drawnCards.length === 0) return;
+    
+    const formattedList = drawnCards.map((c, i) => {
+      const name = c?.name || c?.card?.name || `Lá bài #${i + 1}`;
+      const isReversed = c?.isReversed;
+      const orientation = isReversed ? 'Ngược (Reversed)' : 'Xuôi (Upright)';
+      return `${i + 1}. ${name} - ${orientation}`;
+    }).join('\n');
+
+    const copyText = `Trải bài Tarot của tôi:\n${formattedList}`;
+    
+    navigator.clipboard.writeText(copyText)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(err => {
+        console.error('Lỗi khi sao chép trải bài:', err);
+      });
+  };
+
+  const autoSaveReading = useCallback(async (cards, spreadInfo) => {
+    if (!isAuthenticated) return;
+    try {
+      const cardsData = cards.map((c, i) => ({ 
+        cardId: c.id, 
+        position: i + 1, 
+        isReversed: c.isReversed 
+      }));
+      const response = await apiClient.post('/readings', {
+        cards: cardsData,
+        spreadName: spreadInfo?.name || 'Trải bài Tarot',
+      });
+      if (response.data?.data?.reading?.id) {
+        setCurrentReadingId(response.data.data.reading.id);
+        console.log('Auto-saved reading session:', response.data.data.reading.id);
+      }
+    } catch (error) {
+      console.error('Failed to auto-save reading:', error);
+    }
+  }, [isAuthenticated]);
+
+  // Refs for scroll targets
+  const sectionRef = useRef(null);
+
+  const cardRows = useMemo(() => {
+    if (drawnCards.length === 0) return [];
+    const total = drawnCards.length;
+    
+    if (total <= 4) return [drawnCards];
+    if (total <= 7) {
+      const half = Math.ceil(total / 2);
+      return [drawnCards.slice(0, half), drawnCards.slice(half)];
+    }
+    if (total <= 10) {
+      return [drawnCards.slice(0, 3), drawnCards.slice(3, 7), drawnCards.slice(7)];
+    }
+    const third = Math.ceil(total / 3);
+    return [drawnCards.slice(0, third), drawnCards.slice(third, third * 2), drawnCards.slice(third * 2)];
+  }, [drawnCards]);
+
+  const handleSelectSpread = (spread) => {
+    if (!isAuthenticated) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setPendingSpread(spread);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleConfirmShuffle = async (spreadToUse) => {
+    const spread = spreadToUse || pendingSpread;
+    if (!spread) return;
+    setIsConfirmModalOpen(false);
+    setIsShuffling(true);
+    playSFX('shuffle');
+    document.body.classList.add('cursor-dealing');
+    try {
+      const [response] = await Promise.all([
+        apiClient.post('/cards/draw', { quantity: spread.quantity, isDaily: false }),
+        new Promise(r => setTimeout(r, 1500)),
+      ]);
+      setTargetQuantity(spread.quantity);
+      setDrawnCards([]);
+      setRevealedCardIds(new Set());
+      setAvailableCards(response.data.data.cards);
+      setReadingResult(response.data.data);
+      if (response.data.data.starPoints !== null && response.data.data.starPoints !== undefined) {
+        updateStarPoints(response.data.data.starPoints);
+      }
+      setMode('drawing');
+      window.scrollTo({ top: document.getElementById('spreads').offsetTop - 100, behavior: 'smooth' });
+    } catch (error) {
+      if (error.code === 'INSUFFICIENT_STAR_POINTS') {
+        setIsInsufficientModalOpen(true);
+      } else {
+        console.error('Error fetching cards:', error);
+        alert('Không thể kết nối dòng chảy Vũ trụ hoặc tín hiệu đang khởi động. Vui lòng chờ trong giây phút và thử lại!');
+      }
+    } finally {
+      document.body.classList.remove('cursor-dealing');
+      setIsShuffling(false);
+    }
+  };
+
+  const handleStartDraw = async (quantity) => {
+    if (!isAuthenticated) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    try {
+      setIsFetching(true);
+      setTargetQuantity(quantity);
+      setDrawnCards([]);
+      setRevealedCardIds(new Set());
+      const response = await apiClient.post('/cards/draw', { quantity, isDaily: false });
+      setAvailableCards(response.data.data.cards);
+      setReadingResult(response.data.data);
+      if (response.data.data.starPoints !== null && response.data.data.starPoints !== undefined) {
+        updateStarPoints(response.data.data.starPoints);
+      }
+      setMode('drawing');
+      window.scrollTo({ top: document.getElementById('spreads').offsetTop - 100, behavior: 'smooth' });
+      setIsFetching(false);
+    } catch (error) {
+      if (error.code === 'INSUFFICIENT_STAR_POINTS') {
+        setIsInsufficientModalOpen(true);
+      } else {
+        console.error('Error fetching cards:', error);
+        alert('Không thể kết nối dòng chảy Vũ trụ hoặc tín hiệu đang khởi động. Vui lòng chờ trong giây phút và thử lại!');
+      }
+      setIsFetching(false);
+    }
+  };
+
+  const handleSelectFromFan = (index) => {
+    if (availableCards.length === 0) return;
+    
+    playSFX('draw');
+    const nextCard = availableCards[0];
+    const newAvailable = availableCards.slice(1);
+    
+    // Phase 3: track which fan position was selected so FanCard can animate exit
+    setSelectedFanIndices(prev => new Set([...prev, index]));
+    setDrawnCards(prev => [...prev, nextCard]);
+    setAvailableCards(newAvailable);
+    
+    if (newAvailable.length === 0) {
+      // Trigger auto-save immediately once all cards are picked
+      const allDrawn = [...drawnCards, nextCard];
+      autoSaveReading(allDrawn, pendingSpread);
+
+      // Wait for gold-exit animation (800ms) before transitioning
+      setTimeout(() => {
+        setMode('reading');
+        setTimeout(() => {
+          window.scrollTo({ top: document.getElementById('spreads').offsetTop - 100, behavior: 'smooth' });
+        }, 50);
+      }, 800);
+    }
+  };
+
+  const handleFlip = (card) => {
+    const newRevealed = new Set(revealedCardIds);
+    newRevealed.add(card.id);
+    setRevealedCardIds(newRevealed);
+    setActiveCard(card);
+  };
+
+  const handleAutoFlip = useCallback(() => {
+    if (isAutoFlipping || drawnCards.length === 0) return;
+    
+    const unflippedCards = drawnCards.filter(card => !revealedCardIds.has(card.id));
+    if (unflippedCards.length === 0) return;
+    
+    setIsAutoFlipping(true);
+    
+    let currentDelay = 0;
+    unflippedCards.forEach((card, index) => {
+      setTimeout(() => {
+        setRevealedCardIds(prev => {
+          const next = new Set(prev);
+          next.add(card.id);
+          return next;
+        });
+        setActiveCard(card);
+        playSFX('flip');
+        
+        if (index === unflippedCards.length - 1) {
+          setIsAutoFlipping(false);
+        }
+      }, currentDelay);
+      
+      currentDelay += 800;
+    });
+  }, [isAutoFlipping, drawnCards, revealedCardIds]);
+
+  const handleReset = () => {
+    setMode('select');
+    setReadingResult(null);
+    setActiveCard(null);
+    setDrawnCards([]);
+    setAvailableCards([]);
+    setRevealedCardIds(new Set());
+    setPendingSpread(null);
+    setSelectedFanIndices(new Set());
+    setChatInput('');
+    setChatHistory([]);
+    setAiStatus('idle');
+    setCurrentReadingId(null);
+    setIsAutoFlipping(false);
+  };
+
+
+  const handleRequestAIReading = async (userMessage) => {
+    if (drawnCards.length === 0) return;
+    if (aiStatus === 'streaming') return;
+    
+    const msgToSend = userMessage || chatInput || 'Hãy giải bài giúp tôi.';
+    
+    // Lưu lại history hiện tại trước khi update state (để gửi lên API)
+    const currentHistory = chatHistory;
+
+    setAiStatus('streaming');
+    setChatInput('');
+    // Thêm tin nhắn user và placeholder cho AI
+    setChatHistory(prev => [
+      ...prev, 
+      { role: 'user', text: msgToSend },
+      { role: 'ai', text: '' }
+    ]);
+    let aiResponseText = ''; // Dùng biến cục bộ để gom stream text tránh lỗi duplicate do React Strict Mode
+
+    try {
+      const url = (apiClient.defaults.baseURL || 'http://localhost:3000/api/v1') + '/cards/ai-reading';
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ 
+          cards: drawnCards, 
+          spreadType: readingResult?.spreadName, 
+          message: msgToSend,
+          history: currentHistory,
+          readingId: currentReadingId,
+          persona: selectedPersona,
+          userProfile: user ? {
+            zodiacSign: user.zodiacSign,
+            birthDate: user.birthDate,
+            numerologyLifePath: user.numerologyLifePath ? `Con số chủ đạo ${user.numerologyLifePath}` : null
+          } : null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Tín hiệu giải bài từ Vũ trụ bị gián đoạn');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let currentError = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunkStr = decoder.decode(value, { stream: true });
+        const lines = chunkStr.split('\n');
+        for (let line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataStr = line.slice(6);
+            if (dataStr === '[DONE]') {
+              setAiStatus('idle');
+              break;
+            }
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.done && data.readingId) {
+                setCurrentReadingId(data.readingId);
+                setAiStatus('idle');
+                break;
+              }
+              if (data.error) {
+                aiResponseText += '\n[Lỗi: ' + data.error + ']';
+                setChatHistory(prev => {
+                  const newHistory = [...prev];
+                  const lastIndex = newHistory.length - 1;
+                  newHistory[lastIndex] = { ...newHistory[lastIndex], text: aiResponseText };
+                  return newHistory;
+                });
+                currentError = true;
+                setAiStatus('error');
+              } else if (data.text) {
+                aiResponseText += data.text;
+                setChatHistory(prev => {
+                  const newHistory = [...prev];
+                  const lastIndex = newHistory.length - 1;
+                  newHistory[lastIndex] = { ...newHistory[lastIndex], text: aiResponseText };
+                  return newHistory;
+                });
+              }
+            } catch (e) {
+              console.error('JSON parse error in SSE chunk', e);
+            }
+          }
+        }
+      }
+      if (!currentError) setAiStatus('idle');
+    } catch (error) {
+      console.error('Error fetching AI reading:', error);
+      setAiStatus('error');
+      setChatHistory(prev => {
+        const newHistory = [...prev];
+        const lastIndex = newHistory.length - 1;
+        newHistory[lastIndex] = {
+          ...newHistory[lastIndex],
+          text: aiResponseText + '\n[Bậc thầy Tarot đang bận. Vui lòng thử lại.]'
+        };
+        return newHistory;
+      });
+    }
+  };
+
+  return (
+    <section id="spreads" ref={sectionRef} className="py-12 sm:py-20 md:py-28 px-3.5 sm:px-6 md:px-8 relative min-h-screen">
+      <div className="max-w-[1536px] mx-auto">
+        <AnimatePresence mode="wait">
+          {mode === 'select' ? (
+            <motion.div 
+              key="select"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="text-center mb-12 sm:mb-16">
+                <motion.h2 
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="text-3xl sm:text-4xl md:text-6xl font-serif mb-4 sm:mb-6"
+                >
+                  Chọn <span className="gold-text italic">Hành Trình</span> Của Bạn
+                </motion.h2>
+                
+                <div className="flex flex-col md:flex-row items-center justify-center gap-6 sm:gap-8 mb-8 sm:mb-12">
+                  <motion.p 
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.4 }}
+                    className="text-gray-400 font-light text-base sm:text-lg italic max-w-xl md:text-left text-center"
+                  >
+                    Mỗi kiểu trải bài là một cánh cổng dẫn vào những tầng lớp khác nhau của trực giác.
+                  </motion.p>
+
+                  <div className="flex p-1 bg-mystic-dark/50 border border-mystic-gold/20 rounded-full shrink-0">
+                    <button onClick={() => setViewMode('grid')} className={`p-2.5 sm:p-3 rounded-full transition-all ${viewMode === 'grid' ? 'bg-mystic-gold text-mystic-dark' : 'text-mystic-gold/50 hover:text-mystic-gold'}`}>
+                      <LayoutGrid size={18} />
+                    </button>
+                    <button onClick={() => setViewMode('list')} className={`p-2.5 sm:p-3 rounded-full transition-all ${viewMode === 'list' ? 'bg-mystic-gold text-mystic-dark' : 'text-mystic-gold/50 hover:text-mystic-gold'}`}>
+                      <ListIcon size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid/List View of Spreads */}
+              <div className={viewMode === 'grid' ? "grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6 sm:gap-8" : "flex flex-col gap-6 max-w-5xl mx-auto"}>
+                {spreads.map((spread, i) => (
+                  <motion.div
+                    key={spread.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: spread.delay }}
+                    onClick={() => handleSelectSpread(spread)}
+                    className={`group cursor-pointer glass p-6 sm:p-8 rounded-2xl sm:rounded-[2rem] relative overflow-hidden transition-all duration-500 hover:border-mystic-gold/50 ${viewMode === 'list' ? 'flex items-center gap-6 sm:gap-10' : ''}`}
+                  >
+                     <div className={`mb-6 p-4 bg-mystic-dark/50 rounded-2xl w-fit text-mystic-gold ${viewMode === 'list' ? 'mb-0 scale-110' : ''}`}>{spread.icon}</div>
+                     <div className="flex-grow">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-mystic-gold/70 uppercase tracking-wider text-xs font-bold block">{spread.tagline}</span>
+                          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-serif font-bold">
+                            <span>{spread.quantity}</span>
+                            <MysticStar className="w-3 h-3" />
+                          </span>
+                        </div>
+                        <h3 className="text-2xl font-serif mb-3 gold-text">{spread.name}</h3>
+                        <p className="text-gray-400 text-sm font-light leading-relaxed mb-6">{spread.description}</p>
+                        <div className="flex items-center gap-3 text-mystic-gold font-bold uppercase tracking-wider text-xs">
+                          <span>Chọn ngay ({spread.quantity} Tinh Tú)</span>
+                          <div className="h-px w-6 bg-mystic-gold" />
+                        </div>
+                     </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          ) : mode === 'confirm' ? (
+            <motion.div
+              key="confirm"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.5 }}
+              className="w-full flex flex-col items-center justify-center min-h-[60vh] gap-10"
+            >
+              <div className="w-full">
+                <button onClick={() => setMode('select')} className="flex items-center gap-2 text-mystic-gold/60 hover:text-mystic-gold transition-colors uppercase tracking-widest text-xs font-bold">
+                  <ChevronLeft size={16} /> Thay đổi
+                </button>
+              </div>
+              <motion.div className="p-6 bg-mystic-gold/10 rounded-3xl text-mystic-gold border border-mystic-gold/20"
+                animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 3, repeat: Infinity }}
+              >
+                {pendingSpread?.icon}
+              </motion.div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <p className="text-mystic-gold/60 uppercase tracking-[0.4em] text-[10px]">{pendingSpread?.tagline}</p>
+                  <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-serif font-bold">
+                    <span>Chi phí: {pendingSpread?.quantity}</span>
+                    <MysticStar className="w-3 h-3" />
+                  </span>
+                </div>
+                <h2 className="text-4xl md:text-5xl font-serif gold-text mb-4">{pendingSpread?.name}</h2>
+                <p className="text-gray-400 font-light max-w-md mx-auto">{pendingSpread?.description}</p>
+              </div>
+
+              <motion.button
+                onClick={handleConfirmShuffle}
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.94 }}
+                className="btn-shuffle relative flex items-center gap-3 px-14 py-5 text-mystic-dark font-serif text-xl font-bold tracking-widest uppercase rounded-2xl overflow-hidden"
+                style={{ background: 'linear-gradient(135deg, #bf953f 0%, #fcf6ba 50%, #b38728 100%)' }}
+              >
+                <motion.div className="absolute inset-0 bg-white/20" animate={{ opacity: [0, 0.4, 0] }} transition={{ duration: 2, repeat: Infinity }} />
+                <Shuffle size={22} />
+                <span className="relative">Xào Bài</span>
+              </motion.button>
+              <p className="text-mystic-gold/30 text-xs italic tracking-widest">Hãy tập trung vào câu hỏi của bạn trước khi xào bài</p>
+            </motion.div>
+          ) : mode === 'drawing' ? (
+            <motion.div
+              key="drawing"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full"
+            >
+              <AstrolabeFan 
+                targetQuantity={targetQuantity} 
+                onSelect={handleSelectFromFan} 
+              />
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="reading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="w-full"
+            >
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-12 border-b border-mystic-gold/10 pb-8">
+                <button onClick={handleReset} className="flex items-center gap-2 text-mystic-gold/60 hover:text-mystic-gold transition-colors uppercase tracking-widest text-xs font-bold self-start md:self-auto">
+                  <ChevronLeft size={16} /> Quay lại
+                </button>
+                <div className="text-center">
+                  <h2 className="text-3xl md:text-5xl font-serif gold-text mb-2">{readingResult?.spreadName}</h2>
+                  <p className="text-gray-400 italic text-sm font-light">{readingResult?.description}</p>
+                </div>
+                <div className="flex items-center gap-3 self-end md:self-auto">
+                  {revealedCardIds.size < drawnCards.length && (
+                    <button
+                      onClick={handleAutoFlip}
+                      disabled={isAutoFlipping}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-mystic-gold/15 hover:bg-mystic-gold/25 border border-mystic-gold/30 rounded-full text-mystic-gold text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-[0_0_15px_rgba(212,175,55,0.05)] disabled:opacity-40"
+                    >
+                      <Sparkles className={`w-3.5 h-3.5 ${isAutoFlipping ? 'animate-pulse' : ''}`} />
+                      <span>{isAutoFlipping ? 'Đang lật...' : 'Tự động lật'}</span>
+                    </button>
+                  )}
+                  <button onClick={() => handleStartDraw(targetQuantity)} className="p-3 border border-mystic-gold/20 rounded-full text-mystic-gold/40 hover:text-mystic-gold transition-all" title="Rút lại bài"><RefreshCw size={20} /></button>
+                </div>
+              </div>
+
+              <div className="space-y-24">
+                {/* Rows of Cards to Flip */}
+                <div className="flex flex-col gap-16 items-center">
+                  {cardRows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="flex flex-wrap justify-center gap-12 md:gap-20 w-full">
+                      {row.map((card, index) => {
+                        const flatIndex = drawnCards.findIndex(c => c.id === card.id);
+                        return (
+                          <div key={card.id} className="flex flex-col items-center gap-4">
+                             <div className="flex items-center gap-2 px-3.5 py-1.5 bg-mystic-dark/90 border border-mystic-gold/30 rounded-full text-mystic-gold text-xs uppercase tracking-wider font-bold shadow-md">
+                               <Hash size={12} /> <span>Lá bài #{flatIndex !== -1 ? flatIndex + 1 : index + 1}</span>
+                             </div>
+                             <div className="w-[160px] md:w-[260px]">
+                               <TarotCard 
+                                 card={card} 
+                                 index={index} 
+                                 isRevealed={revealedCardIds.has(card.id)}
+                                 onFlip={handleFlip}
+                               />
+                             </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+
+                {/* AI & Summary Section */}
+                <div className="pt-24 border-t border-mystic-gold/10">
+                   <div className="grid lg:grid-cols-3 gap-12">
+                      <div className="lg:col-span-2 space-y-8">
+                        <div className="flex items-center justify-between mb-8">
+                          <div className="flex items-center gap-3">
+                            <div className="p-3 bg-mystic-gold/10 rounded-xl text-mystic-gold"><BookOpen size={24} /></div>
+                            <h3 className="text-2xl font-serif gold-text uppercase tracking-widest">Thông Điệp Chi Tiết</h3>
+                          </div>
+                          {drawnCards && drawnCards.length > 0 && (
+                            <div className="flex items-center gap-2.5">
+                              <button
+                                onClick={handleCopySpread}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-mystic-gold/10 hover:bg-mystic-gold/20 border border-mystic-gold/30 rounded-xl text-mystic-gold text-xs font-bold uppercase tracking-wider transition-all duration-300 shadow-[0_0_15px_rgba(212,175,55,0.05)] cursor-pointer"
+                                title="Sao chép danh sách trải bài gồm xuôi và ngược"
+                              >
+                                {copied ? (
+                                  <>
+                                    <Check size={13} className="text-green-400" />
+                                    <span className="text-green-400">Đã chép!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={13} />
+                                    <span>Sao chép</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-6">
+                          {drawnCards.map((card) => (
+                            <motion.div
+                              key={`meaning-${card.id}`}
+                              className={`glass p-5 sm:p-7 md:p-10 rounded-2xl sm:rounded-[2.5rem] transition-all ${!revealedCardIds.has(card.id) ? 'opacity-30 blur-sm grayscale select-none' : 'opacity-100'}`}
+                            >
+                              <div className="flex flex-col md:flex-row gap-6 sm:gap-10 md:gap-14 items-center md:items-start">
+                                <div className="w-full max-w-[280px] sm:max-w-[320px] md:w-[336px] aspect-[1/1.7] rounded-2xl sm:rounded-[2rem] md:rounded-[2.5rem] overflow-hidden border-4 border-mystic-gold/20 shadow-[0_30px_60px_rgba(0,0,0,0.8)] shrink-0">
+                                  <ProtectedImage
+                                    src={card.image}
+                                    className={`w-full h-full object-cover ${card.isReversed ? 'rotate-180' : ''}`}
+                                    alt={card.name}
+                                    watermarkText="MYSTIC TAROT"
+                                    showWatermark={true}
+                                  />
+                                </div>
+                                <div className="pt-2 sm:pt-4 md:pt-6 text-center md:text-left flex-1 w-full">
+                                  <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 sm:gap-4 mb-4 sm:mb-6">
+                                    <h4 className="text-2xl sm:text-3xl md:text-4xl font-serif gold-text tracking-wider">
+                                      {revealedCardIds.has(card.id) ? card.name : '???'}
+                                    </h4>
+                                    {card.isReversed && (
+                                      <div className="px-4 py-1 sm:px-5 sm:py-1.5 bg-red-600/20 border border-red-500/50 rounded-full shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+                                        <span className="text-red-400 text-[10px] sm:text-xs font-bold uppercase tracking-[0.2em]">
+                                          Lá bài Ngược
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <p className="text-gray-200 text-base sm:text-lg md:text-xl lg:text-2xl italic font-light leading-relaxed max-w-4xl">
+                                    {revealedCardIds.has(card.id) ? card.message : 'Lật lá bài để xem ý nghĩa...'}
+                                  </p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* AI Sidebar */}
+                      <div className="lg:col-span-1 flex flex-col gap-4">
+                        <AIPersonaSelector 
+                          selectedPersona={selectedPersona}
+                          onSelectPersona={setSelectedPersona}
+                        />
+                        <div className="sticky top-32 h-[75vh]">
+                          <ChatInterface
+                            chatHistory={chatHistory}
+                            aiStatus={aiStatus}
+                            chatInput={chatInput}
+                            setChatInput={setChatInput}
+                            onSendMessage={handleRequestAIReading}
+                            drawnCards={drawnCards}
+                          />
+                        </div>
+                      </div>
+                   </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      
+      {/* Dealing Animation Overlay */}
+      <DealingOverlay visible={isShuffling} />
+
+      {/* Loading Overlay (for refresh) */}
+      <AnimatePresence>
+        {isFetching && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-mystic-dark/90 backdrop-blur-md"
+          >
+            <div className="relative w-24 h-24 mb-6">
+              <div className="absolute inset-0 border-t-2 border-mystic-gold rounded-full animate-spin" />
+              <div className="absolute inset-4 border-b-2 border-mystic-gold/40 rounded-full animate-spin-reverse" />
+              <Sparkles className="absolute inset-0 m-auto text-mystic-gold" size={32} />
+            </div>
+            <p className="text-mystic-gold uppercase tracking-[0.4em] text-[10px] animate-pulse">Đón nhận dòng chảy Vũ trụ...</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Insufficient Stars Modal */}
+      <InsufficientStarsModal
+        isOpen={isInsufficientModalOpen}
+        onClose={() => setIsInsufficientModalOpen(false)}
+      />
+
+      {/* Draw Confirmation Modal with randomized prompts */}
+      <DrawConfirmationModal
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        spread={pendingSpread}
+        onConfirm={() => handleConfirmShuffle(pendingSpread)}
+        isShuffling={isShuffling}
+      />
+
+      {/* Auth Required Modal for Guests */}
+      <AuthRequiredModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+    </section>
+  );
+};
+
+export default SpreadSelector;
