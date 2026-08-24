@@ -4,10 +4,6 @@ import { BrowserRouter } from 'react-router-dom'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import './index.css'
 import App from './App.jsx'
-import { installDrawDiagnostics } from './utils/drawDiagnostics.js'
-
-// Install global error/lifecycle listeners before React renders
-installDrawDiagnostics();
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '934942203815-ktluiivcbv9ff4iukv0nhciurrb70mit.apps.googleusercontent.com'
 

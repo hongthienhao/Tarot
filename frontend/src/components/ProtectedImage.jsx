@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { logDrawEvent, DE, DRAW_DIAGNOSTICS } from '../utils/drawDiagnostics';
 
 /**
  * ProtectedImage component:
@@ -67,19 +66,13 @@ const ProtectedImage = ({
     }
 
     // 3. Fetch for the first time
-    if (DRAW_DIAGNOSTICS) logDrawEvent(DE.IMAGE_LOAD_START, { src: src.split('/').slice(-1)[0] });
-
     const fetchPromise = fetch(src)
       .then(response => {
         if (!response.ok) throw new Error('Network response was not ok');
         return response.blob();
       })
-      .then(blob => {
-        if (DRAW_DIAGNOSTICS) logDrawEvent(DE.IMAGE_BITMAP_START, { src: src.split('/').slice(-1)[0] });
-        return createImageBitmap(blob);
-      })
+      .then(blob => createImageBitmap(blob))
       .then(bitmap => {
-        if (DRAW_DIAGNOSTICS) logDrawEvent(DE.IMAGE_BITMAP_SUCCESS, { src: src.split('/').slice(-1)[0] });
         imageCache.set(src, bitmap);
         return bitmap;
       });
@@ -88,13 +81,9 @@ const ProtectedImage = ({
 
     fetchPromise
       .then(bitmap => {
-        if (isMounted) {
-          if (DRAW_DIAGNOSTICS) logDrawEvent(DE.IMAGE_LOAD_SUCCESS, { src: src.split('/').slice(-1)[0] });
-          drawImage(bitmap);
-        }
+        if (isMounted) drawImage(bitmap);
       })
       .catch(err => {
-        if (DRAW_DIAGNOSTICS) logDrawEvent(DE.IMAGE_LOAD_ERROR, { src: src.split('/').slice(-1)[0], message: err?.message });
         if (isMounted) {
           setHasError(true);
           setIsLoading(false);

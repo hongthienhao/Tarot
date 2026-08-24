@@ -7,7 +7,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AudioController from './components/Layout/AudioController';
 import PageLoading from './components/PageLoading';
 import CosmicAuthModal from './components/CosmicAuthModal';
-import DrawDiagnosticPanel from './components/Diagnostic/DrawDiagnosticPanel';
 import useSoundStore, { initAudioContext } from './store/useSoundStore';
 import useAuthStore from './store/useAuthStore';
 
@@ -102,9 +101,6 @@ function App() {
           userName={authNotice.userName}
         />
       )}
-
-      {/* Diagnostic Panel — fixed overlay, renders only when DRAW_DIAGNOSTICS=true */}
-      <DrawDiagnosticPanel />
     </div>
   );
 }

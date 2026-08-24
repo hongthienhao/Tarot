@@ -13,7 +13,6 @@ import DrawConfirmationModal from './DrawConfirmationModal';
 import AuthRequiredModal from './AuthRequiredModal';
 import MysticStar from './MysticStar';
 import AstrolabeFan from './AstrolabeFan';
-import { logDrawEvent, setFlowState, logMemorySnapshot, DE, DRAW_DIAGNOSTICS } from '../utils/drawDiagnostics';
 
 const spreads = [
   {
@@ -303,10 +302,6 @@ const SpreadSelector = () => {
       setIsAuthModalOpen(true);
       return;
     }
-    if (DRAW_DIAGNOSTICS) {
-      logDrawEvent(DE.SPREAD_SELECTED, { spreadId: spread.id, spreadName: spread.name, quantity: spread.quantity });
-      setFlowState('SPREAD_SELECTED');
-    }
     setPendingSpread(spread);
     setIsConfirmModalOpen(true);
   };
@@ -316,11 +311,6 @@ const SpreadSelector = () => {
     if (!spread) return;
     setIsConfirmModalOpen(false);
     setIsShuffling(true);
-    if (DRAW_DIAGNOSTICS) {
-      logDrawEvent(DE.SHUFFLE_START, { spreadName: spread.name, quantity: spread.quantity });
-      setFlowState('SHUFFLING');
-      logMemorySnapshot('BEFORE_SHUFFLE');
-    }
     playSFX('shuffle');
     document.body.classList.add('cursor-dealing');
     try {
@@ -328,11 +318,6 @@ const SpreadSelector = () => {
         apiClient.post('/cards/draw', { quantity: spread.quantity, isDaily: false }),
         new Promise(r => setTimeout(r, 1500)),
       ]);
-      if (DRAW_DIAGNOSTICS) {
-        logDrawEvent(DE.SHUFFLE_COMPLETE, { cardsReceived: response.data?.data?.cards?.length });
-        setFlowState('DRAWING');
-        logMemorySnapshot('AFTER_SHUFFLE');
-      }
       setTargetQuantity(spread.quantity);
       setDrawnCards([]);
       setRevealedCardIds(new Set());
@@ -344,10 +329,6 @@ const SpreadSelector = () => {
       setMode('drawing');
       window.scrollTo({ top: document.getElementById('spreads').offsetTop - 100, behavior: 'smooth' });
     } catch (error) {
-      if (DRAW_DIAGNOSTICS) {
-        logDrawEvent(DE.DRAW_FLOW_ERROR, { step: 'SHUFFLE_API', message: error?.message, code: error?.code });
-        setFlowState('ERROR');
-      }
       if (error.code === 'INSUFFICIENT_STAR_POINTS') {
         setIsInsufficientModalOpen(true);
       } else {
@@ -392,35 +373,20 @@ const SpreadSelector = () => {
 
   const handleSelectFromFan = (index) => {
     if (availableCards.length === 0) return;
-
-    if (DRAW_DIAGNOSTICS) {
-      logDrawEvent(DE.CARD_SELECTED, {
-        fanIndex: index,
-        remaining: availableCards.length - 1,
-        totalDrawn: drawnCards.length + 1,
-        target: targetQuantity,
-      });
-    }
-
+    
     playSFX('draw');
     const nextCard = availableCards[0];
     const newAvailable = availableCards.slice(1);
-
+    
     // Phase 3: track which fan position was selected so FanCard can animate exit
     setSelectedFanIndices(prev => new Set([...prev, index]));
     setDrawnCards(prev => [...prev, nextCard]);
     setAvailableCards(newAvailable);
-
+    
     if (newAvailable.length === 0) {
       // Trigger auto-save immediately once all cards are picked
       const allDrawn = [...drawnCards, nextCard];
       autoSaveReading(allDrawn, pendingSpread);
-
-      if (DRAW_DIAGNOSTICS) {
-        logDrawEvent(DE.READING_NAVIGATION_START, { totalCards: allDrawn.length });
-        setFlowState('READING');
-        logMemorySnapshot('BEFORE_CARD_SELECT');
-      }
 
       // Wait for gold-exit animation (800ms) before transitioning
       setTimeout(() => {

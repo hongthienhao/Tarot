@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Compass, Sparkles, Check, X, Info } from 'lucide-react';
 import useSoundStore from '../store/useSoundStore';
 import ProtectedImage from './ProtectedImage';
-import { logDrawEvent, logMemorySnapshot, DE, DRAW_DIAGNOSTICS } from '../utils/drawDiagnostics';
 
 const AstrolabeFan = ({ targetQuantity, onSelect }) => {
   const TOTAL_CARDS = 78;
@@ -16,21 +15,6 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
 
   // Responsive dynamic window width
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
-
-  // Diagnostic: log mount/unmount
-  useEffect(() => {
-    if (DRAW_DIAGNOSTICS) {
-      logDrawEvent(DE.ASTROLABE_MOUNT, { targetQuantity, totalCards: TOTAL_CARDS });
-      logDrawEvent(DE.ASTROLABE_CARD_COUNT, { count: TOTAL_CARDS });
-      logMemorySnapshot('ASTROLABE_MOUNT');
-    }
-    return () => {
-      if (DRAW_DIAGNOSTICS) {
-        logDrawEvent(DE.ASTROLABE_UNMOUNT, { targetQuantity });
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
