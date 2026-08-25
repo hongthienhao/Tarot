@@ -9,11 +9,37 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Tarot - Không Gian Huyền Bí</title>
     <meta name="description" content="Khám phá thông điệp từ vũ trụ qua những lá bài Tarot huyền bí. Đọc bài Tarot trực tuyến với AI." />
+
+    <!--
+      CRITICAL INLINE CSS:
+      Paint the background color immediately before any JS loads.
+      This eliminates the "white flash" or "blank purple screen" on mobile
+      that users see for 7-10s while JS bundles are parsed.
+    -->
+    <style>
+      *,*::before,*::after{box-sizing:border-box}
+      html{margin:0;padding:0;min-height:100vh;background:#0f0716;color:rgba(255,255,255,0.87);font-family:system-ui,sans-serif}
+      body{margin:0;padding:0;min-height:100vh;background:radial-gradient(circle at top,#1a0b2e 0%,#0f0716 100%);overflow-x:hidden}
+      #root{display:flex;flex-direction:column;min-height:100vh}
+    </style>
+
     <!-- Font preconnects -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Optimized font load: only weights actually used -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      font-display=swap: text renders immediately in system font,
+      swaps to Playfair/Inter once loaded — no invisible text blocking render
+    -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+    </noscript>
+
     <!-- Preload critical asset: card back used immediately in AstrolabeFan -->
     <link rel="preload" href="/assets/cards/card_back.jpeg" as="image" />
   </head>
@@ -22,4 +48,3 @@
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
-

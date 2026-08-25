@@ -7,12 +7,18 @@ const hotlinkProtection = () => ({
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
       if (req.url.startsWith('/assets/cards/')) {
+        // Allow all local dev traffic to prevent broken images during development
+        const host = req.headers.host || '';
+        if (host.includes('localhost') || host.includes('127.0.0.1')) {
+          return next();
+        }
+
         const dest = req.headers['sec-fetch-dest'];
         const site = req.headers['sec-fetch-site'];
         const referer = req.headers['referer'];
         
         // Ensure the request comes from our own app
-        const isDirectAccess = dest === 'document' || dest === 'image' || site === 'cross-site';
+        const isDirectAccess = dest === 'document' || site === 'cross-site';
         const isMissingReferer = !referer;
         
         if (isDirectAccess || isMissingReferer) {
@@ -51,6 +57,14 @@ export default defineConfig({
           }
           if (id.includes('node_modules/lucide-react')) {
             return 'vendor-icons';
+          }
+          // Google OAuth — loaded lazily, separate chunk so it doesn't block initial paint
+          if (id.includes('node_modules/@react-oauth') || id.includes('node_modules/jwt-decode')) {
+            return 'vendor-oauth';
+          }
+          // Axios — API client, separate from app code
+          if (id.includes('node_modules/axios')) {
+            return 'vendor-axios';
           }
         },
       },

@@ -14,20 +14,20 @@ const Background = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[-1] overflow-hidden bg-mystic-dark">
-      {/* Deep Space Gradients */}
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-mystic-purple/20 blur-[120px] animate-pulse-slow" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-mystic-wine/10 blur-[150px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
+    <div className="fixed inset-0 z-[-1] overflow-hidden bg-transparent">
+      {/* Deep Space Gradients — animation disabled on mobile via CSS media query */}
+      <div className="bg-blob-1 absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-mystic-purple/20 blur-[120px] animate-pulse-slow" />
+      <div className="bg-blob-2 absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-mystic-wine/10 blur-[150px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
       
       {/* Center Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(26,11,46,0.3)_0%,transparent_70%)]" />
       
-      {/* Stars/Particles */}
+      {/* Stars/Particles — twinkle disabled on mobile via CSS media query */}
       <div className="absolute inset-0 opacity-30">
         {stars.map((star) => (
           <div
             key={star.id}
-            className="absolute rounded-full bg-white animate-twinkle"
+            className="star-particle absolute rounded-full bg-white animate-twinkle"
             style={{
               top: star.top,
               left: star.left,
@@ -39,7 +39,6 @@ const Background = () => {
           />
         ))}
       </div>
-
     </div>
   );
 };

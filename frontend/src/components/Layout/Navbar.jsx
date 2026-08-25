@@ -235,13 +235,14 @@ const Navbar = () => {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            {/* Backdrop */}
+            {/* Backdrop — no backdrop-blur: causes iOS Safari rendering bug with overflow-x:hidden */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 md:hidden"
+              className="fixed inset-0 bg-black/75 z-40 md:hidden"
+              style={{ touchAction: 'none' }}
             />
 
             {/* Menu Drawer */}
@@ -251,6 +252,7 @@ const Navbar = () => {
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="fixed top-0 right-0 bottom-0 w-4/5 max-w-sm bg-mystic-dark border-l border-mystic-gold/20 p-6 z-50 flex flex-col justify-between overflow-y-auto md:hidden shadow-2xl"
+              style={{ WebkitOverflowScrolling: 'touch' }}
             >
               {/* Header inside drawer */}
               <div className="flex items-center justify-between pb-6 border-b border-white/10">
