@@ -107,7 +107,6 @@ const ProtectedImage = ({
         WebkitUserDrag: 'none',
         ...style,
       }}
-      onContextMenu={e => e.preventDefault()}
       onDragStart={e => e.preventDefault()}
       onClick={onClick}
       {...restProps}

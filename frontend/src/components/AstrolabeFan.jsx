@@ -91,6 +91,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
     const step = () => {
       if (Math.abs(velocityRef.current) < 0.01) {
         velocityRef.current = 0;
+        setRotationAngle(prev => prev); // Trigger final render to remove will-change
         return;
       }
       velocityRef.current *= 0.91;
@@ -157,6 +158,8 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
     
     if (Math.abs(velocityRef.current) > 0.06) {
       startInertia(velocityRef.current);
+    } else {
+      setRotationAngle(prev => prev); // Trigger final render to remove will-change
     }
   };
 
@@ -356,7 +359,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                       : 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease, box-shadow 0.25s ease',
                     WebkitBackfaceVisibility: 'hidden',
                     backfaceVisibility: 'hidden',
-                    willChange: 'transform, opacity',
+                    willChange: (isDraggingRef.current || Math.abs(velocityRef.current) >= 0.01) ? 'transform, opacity' : 'auto',
                   }}
                   className="flex flex-col items-center justify-start overflow-visible"
                 >
