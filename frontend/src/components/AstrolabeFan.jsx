@@ -380,12 +380,11 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                       className="w-full h-full object-cover pointer-events-none select-none"
                     />
 
-                    {/* Subtle Mystic Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-mystic-purple/60 to-transparent pointer-events-none opacity-40" />
+                    {/* Subtle Mystic Overlay (Removed for Performance) */}
 
                     {/* Golden Focus Glow */}
                     {isFocused && (
-                      <div className="absolute inset-0 bg-mystic-gold/25 pointer-events-none animate-pulse" />
+                      <div className="absolute inset-0 bg-mystic-gold/25 pointer-events-none" />
                     )}
 
                     {/* Gold Flash on Draw */}
