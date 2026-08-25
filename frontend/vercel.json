@@ -20,18 +20,6 @@
     },
     {
       "source": "/assets/cards/:match*",
-      "has": [
-        {
-          "type": "header",
-          "key": "sec-fetch-dest",
-          "value": "image"
-        }
-      ],
-      "destination": "/",
-      "permanent": false
-    },
-    {
-      "source": "/assets/cards/:match*",
       "missing": [
         {
           "type": "header",
