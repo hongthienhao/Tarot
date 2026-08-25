@@ -264,7 +264,6 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
     >
       {/* Background Ambience specific to the Astrolabe */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl -z-10">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-mystic-purple/10 rounded-full blur-[120px]" />
       </div>
 
       {/* Header Info */}
@@ -283,7 +282,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
       {/* Drawn Cards Tray Indicator */}
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-[90%] md:max-w-xl flex flex-col items-center justify-center px-6 py-4 rounded-2xl bg-mystic-dark/80 border border-mystic-gold/30 backdrop-blur-md z-20 my-4 shadow-xl gap-4"
+        className="w-full max-w-[90%] md:max-w-xl flex flex-col items-center justify-center px-6 py-4 rounded-2xl bg-mystic-dark/95 border border-mystic-gold/30 z-20 my-4 shadow-xl gap-4"
       >
         <div className="flex items-center gap-2">
           <Sparkles size={16} className="text-mystic-gold animate-pulse" />
@@ -404,7 +403,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                         exit={{ opacity: 0, y: -10, scale: 0.9 }}
                         transition={{ duration: 0.2, ease: 'easeOut' }}
                         onClick={(e) => e.stopPropagation()}
-                        className="absolute top-full flex items-center gap-1.5 p-1.5 rounded-full bg-mystic-dark/95 border border-mystic-gold/50 shadow-[0_4px_25px_rgba(0,0,0,0.8)] backdrop-blur-md whitespace-nowrap z-50 pointer-events-auto"
+                        className="absolute top-full flex items-center gap-1.5 p-1.5 rounded-full bg-mystic-dark/95 border border-mystic-gold/50 shadow-[0_4px_25px_rgba(0,0,0,0.8)] whitespace-nowrap z-50 pointer-events-auto"
                       >
                         <button
                           onClick={(e) => {
@@ -457,7 +456,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
               style={{ transform: `rotate(${-(progressRatio - 0.5) * 110}deg)` }}
             >
               <div className="w-full h-full flex items-start justify-center">
-                <div className="w-0 h-0 border-l-[14px] md:border-l-[16px] border-l-transparent border-r-[14px] md:border-r-[16px] border-r-transparent border-t-[50px] md:border-t-[56px] border-t-mystic-gold/30 blur-[1px]" />
+                <div className="w-0 h-0 border-l-[14px] md:border-l-[16px] border-l-transparent border-r-[14px] md:border-r-[16px] border-r-transparent border-t-[50px] md:border-t-[56px] border-t-mystic-gold/30" />
               </div>
             </div>
 
