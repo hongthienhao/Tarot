@@ -228,8 +228,8 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
 
     if (Math.abs(relAngle) <= maxVisibleAngle) {
       const rad = (relAngle * Math.PI) / 180;
-      const x = Math.sin(rad) * wheelRadius;
-      const y = wheelRadius - Math.cos(rad) * wheelRadius;
+      const x = Math.round(Math.sin(rad) * wheelRadius);
+      const y = Math.round(wheelRadius - Math.cos(rad) * wheelRadius);
       const isSelected = selectedCards.includes(i);
       const isFocused = focusedCardIndex === i;
 
@@ -311,7 +311,6 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                       alt="Drawn Card" 
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-mystic-gold/20 mix-blend-overlay" />
                   </>
                 )}
               </div>
@@ -356,8 +355,6 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                     transition: isDraggingRef.current 
                       ? 'none' 
                       : 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease, box-shadow 0.25s ease',
-                    WebkitBackfaceVisibility: 'hidden',
-                    backfaceVisibility: 'hidden',
                     willChange: (isDraggingRef.current || Math.abs(velocityRef.current) >= 0.01) ? 'transform, opacity' : 'auto',
                   }}
                   className="flex flex-col items-center justify-start overflow-visible"
