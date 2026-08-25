@@ -1,8 +1,12 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, Sparkles, Check, X, Info } from 'lucide-react';
+import { Compass, Sparkles, X } from 'lucide-react';
 import useSoundStore from '../store/useSoundStore';
 import ProtectedImage from './ProtectedImage';
+
+// Hard cap on cards rendered simultaneously to prevent OOM on Safari iOS
+const MAX_VISIBLE_MOBILE = 15;
+const MAX_VISIBLE_DESKTOP = 25;
 
 const AstrolabeFan = ({ targetQuantity, onSelect }) => {
   const TOTAL_CARDS = 78;
@@ -18,7 +22,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
@@ -71,8 +75,15 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
   const animFrameRef = useRef(null);
   const hasMovedSignificantlyRef = useRef(false);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    };
+  }, []);
+
   // Haptic feedback
-  const triggerHaptic = (type = 'tick') => {
+  const triggerHaptic = useCallback((type = 'tick') => {
     if (typeof window !== 'undefined' && 'vibrate' in navigator) {
       try {
         if (type === 'tick') navigator.vibrate(4);
@@ -81,17 +92,16 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
         else if (type === 'cancel') navigator.vibrate(8);
       } catch (_) {}
     }
-  };
+  }, []);
 
   // Smooth Inertia
-  const startInertia = (initialVelocity) => {
+  const startInertia = useCallback((initialVelocity) => {
     const cappedVelocity = Math.max(-0.35, Math.min(0.35, initialVelocity));
     velocityRef.current = cappedVelocity;
-    
+
     const step = () => {
       if (Math.abs(velocityRef.current) < 0.01) {
         velocityRef.current = 0;
-        setRotationAngle(prev => prev); // Trigger final render to remove will-change
         return;
       }
       velocityRef.current *= 0.91;
@@ -106,10 +116,10 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
 
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     animFrameRef.current = requestAnimationFrame(step);
-  };
+  }, [totalArcSpan]);
 
   // Mouse / Touch Handlers
-  const handlePointerDown = (e) => {
+  const handlePointerDown = useCallback((e) => {
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     isDraggingRef.current = true;
     hasMovedSignificantlyRef.current = false;
@@ -119,9 +129,9 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
     startAngleRef.current = rotationAngle;
     lastTimeRef.current = performance.now();
     velocityRef.current = 0;
-  };
+  }, [rotationAngle]);
 
-  const handlePointerMove = (e) => {
+  const handlePointerMove = useCallback((e) => {
     if (!isDraggingRef.current) return;
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const now = performance.now();
@@ -134,14 +144,14 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
 
     const sensitivity = isMobile ? 0.055 : 0.035;
     const rawAngle = startAngleRef.current + deltaX * sensitivity;
-    
+
     const minAngle = -(totalArcSpan / 2);
     const maxAngle = (totalArcSpan / 2);
     const newAngle = Math.max(minAngle - 10, Math.min(maxAngle + 10, rawAngle));
 
     const instantVelocity = (deltaX * sensitivity) / dt * 8;
     velocityRef.current = instantVelocity;
-    
+
     const prevCardStep = Math.round(rotationAngle / anglePerCard);
     const newCardStep = Math.round(newAngle / anglePerCard);
     if (prevCardStep !== newCardStep) {
@@ -150,21 +160,19 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
 
     setRotationAngle(newAngle);
     lastTimeRef.current = now;
-  };
+  }, [isMobile, totalArcSpan, anglePerCard, rotationAngle, triggerHaptic]);
 
-  const handlePointerUp = () => {
+  const handlePointerUp = useCallback(() => {
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
-    
+
     if (Math.abs(velocityRef.current) > 0.06) {
       startInertia(velocityRef.current);
-    } else {
-      setRotationAngle(prev => prev); // Trigger final render to remove will-change
     }
-  };
+  }, [startInertia]);
 
   // Fine Mouse Wheel
-  const handleWheel = (e) => {
+  const handleWheel = useCallback((e) => {
     e.preventDefault();
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     const delta = e.deltaY * 0.008;
@@ -174,98 +182,107 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
       return Math.max(minAngle, Math.min(maxAngle, prev - delta));
     });
     triggerHaptic('tick');
-  };
+  }, [totalArcSpan, triggerHaptic]);
 
   // Card Click Interaction
-  const handleCardClick = (cardIndex) => {
+  const handleCardClick = useCallback((cardIndex) => {
     if (hasMovedSignificantlyRef.current) return;
     if (selectedCards.length >= targetQuantity || selectedCards.includes(cardIndex)) return;
 
     if (focusedCardIndex === cardIndex) {
-      // Second tap -> Confirm Draw
       handleConfirmDraw(cardIndex);
     } else {
-      // First tap -> Lift
       triggerHaptic('focus');
       setFocusedCardIndex(cardIndex);
     }
-  };
+  }, [selectedCards, targetQuantity, focusedCardIndex, triggerHaptic]);
 
   // Confirm Draw Action
-  const handleConfirmDraw = (cardIndex = focusedCardIndex) => {
-    if (cardIndex === null || selectedCards.length >= targetQuantity || selectedCards.includes(cardIndex)) return;
+  const handleConfirmDraw = useCallback((cardIndex) => {
+    const idx = cardIndex ?? focusedCardIndex;
+    if (idx === null || selectedCards.length >= targetQuantity || selectedCards.includes(idx)) return;
     triggerHaptic('select');
-    
-    setSelectedCards(prev => [...prev, cardIndex]);
+
+    setSelectedCards(prev => [...prev, idx]);
     setFocusedCardIndex(null);
-    
-    // Notify parent component
+
     if (onSelect) {
-      onSelect(cardIndex);
+      onSelect(idx);
     }
-  };
+  }, [focusedCardIndex, selectedCards, targetQuantity, triggerHaptic, onSelect]);
 
   // Cancel Focus
-  const handleCancelFocus = () => {
+  const handleCancelFocus = useCallback(() => {
     triggerHaptic('cancel');
     setFocusedCardIndex(null);
-  };
+  }, [triggerHaptic]);
 
   // Background Click
-  const handleBackgroundClick = (e) => {
+  const handleBackgroundClick = useCallback(() => {
     if (focusedCardIndex !== null && !isDraggingRef.current && !hasMovedSignificantlyRef.current) {
       handleCancelFocus();
     }
-  };
+  }, [focusedCardIndex, handleCancelFocus]);
 
-  // Render variables
-  const visibleCards = [];
+  // Render variables — capped at MAX_VISIBLE to prevent OOM on Safari iOS
+  const maxVisible = isMobile ? MAX_VISIBLE_MOBILE : MAX_VISIBLE_DESKTOP;
   const halfDeckOffset = (TOTAL_CARDS - 1) * anglePerCard / 2;
 
-  for (let i = 0; i < TOTAL_CARDS; i++) {
-    const cardBaseAngle = (i * anglePerCard) - halfDeckOffset;
-    const relAngle = cardBaseAngle + rotationAngle;
+  const visibleCards = useMemo(() => {
+    const candidates = [];
+    for (let i = 0; i < TOTAL_CARDS; i++) {
+      const cardBaseAngle = (i * anglePerCard) - halfDeckOffset;
+      const relAngle = cardBaseAngle + rotationAngle;
 
-    if (Math.abs(relAngle) <= maxVisibleAngle) {
-      const rad = (relAngle * Math.PI) / 180;
-      const x = Math.sin(rad) * wheelRadius;
-      const y = wheelRadius - Math.cos(rad) * wheelRadius;
-      const isSelected = selectedCards.includes(i);
-      const isFocused = focusedCardIndex === i;
+      if (Math.abs(relAngle) <= maxVisibleAngle) {
+        const rad = (relAngle * Math.PI) / 180;
+        const x = Math.sin(rad) * wheelRadius;
+        const y = wheelRadius - Math.cos(rad) * wheelRadius;
+        const isSelected = selectedCards.includes(i);
+        const isFocused = focusedCardIndex === i;
 
-      const normAngle = Math.abs(relAngle) / maxVisibleAngle;
-      const smoothCosineOpacity = Math.max(0, Math.cos(normAngle * (Math.PI / 2)));
-      const cardOpacity = isSelected ? 0 : isFocused ? 1 : smoothCosineOpacity;
+        const normAngle = Math.abs(relAngle) / maxVisibleAngle;
+        const smoothCosineOpacity = Math.max(0, Math.cos(normAngle * (Math.PI / 2)));
+        const cardOpacity = isSelected ? 0 : isFocused ? 1 : smoothCosineOpacity;
 
-      visibleCards.push({
-        index: i,
-        relAngle,
-        x,
-        y,
-        isSelected,
-        isFocused,
-        opacity: cardOpacity,
-        zIndex: isFocused ? 9999 : isSelected ? 1 : i + 10,
-      });
+        candidates.push({
+          index: i,
+          relAngle,
+          absRelAngle: Math.abs(relAngle),
+          x,
+          y,
+          isSelected,
+          isFocused,
+          opacity: cardOpacity,
+          zIndex: isFocused ? 9999 : isSelected ? 1 : i + 10,
+        });
+      }
     }
-  }
+
+    // Sort by absolute angle (closest to center first) and cap count
+    // Always keep focused card regardless of cap
+    const focused = candidates.filter(c => c.isFocused);
+    const rest = candidates.filter(c => !c.isFocused);
+    rest.sort((a, b) => a.absRelAngle - b.absRelAngle);
+    const capped = rest.slice(0, maxVisible - focused.length);
+
+    return [...focused, ...capped];
+  }, [rotationAngle, anglePerCard, halfDeckOffset, maxVisibleAngle, wheelRadius, selectedCards, focusedCardIndex, maxVisible]);
 
   const minAngle = -(totalArcSpan / 2);
   const maxAngle = (totalArcSpan / 2);
   const progressRatio = Math.max(0, Math.min(1, (rotationAngle - minAngle) / (maxAngle - minAngle || 1)));
 
+  const isMoving = isDraggingRef.current || Math.abs(velocityRef.current) >= 0.01;
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0 }}
       onClick={handleBackgroundClick}
       className="w-full min-h-[75vh] flex flex-col items-center justify-center select-none overflow-visible relative pb-10"
     >
-      {/* Background Ambience specific to the Astrolabe */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl -z-10">
-      </div>
-
       {/* Header Info */}
       <div className="w-full max-w-4xl flex flex-col items-center text-center z-10 mb-4 pointer-events-none">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-mystic-purple/60 border border-mystic-gold/40 text-mystic-gold text-xs font-semibold uppercase tracking-widest mb-3 shadow-[0_0_20px_rgba(212,175,55,0.2)]">
@@ -280,7 +297,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
       </div>
 
       {/* Drawn Cards Tray Indicator */}
-      <div 
+      <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-[90%] md:max-w-xl flex flex-col items-center justify-center px-6 py-4 rounded-2xl bg-mystic-dark/95 border border-mystic-gold/30 z-20 my-4 shadow-xl gap-4"
       >
@@ -306,9 +323,9 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
               >
                 {isDrawn && (
                   <>
-                    <ProtectedImage 
-                      src="/assets/cards/card_back.jpeg" 
-                      alt="Drawn Card" 
+                    <ProtectedImage
+                      src="/assets/cards/card_back.jpeg"
+                      alt="Drawn Card"
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-mystic-gold/20 mix-blend-overlay" />
@@ -353,12 +370,12 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                     })`,
                     opacity: card.opacity,
                     zIndex: card.zIndex,
-                    transition: isDraggingRef.current 
-                      ? 'none' 
+                    transition: isDraggingRef.current
+                      ? 'none'
                       : 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease, box-shadow 0.25s ease',
                     WebkitBackfaceVisibility: 'hidden',
                     backfaceVisibility: 'hidden',
-                    willChange: (isDraggingRef.current || Math.abs(velocityRef.current) >= 0.01) ? 'transform, opacity' : 'auto',
+                    willChange: isMoving ? 'transform, opacity' : 'auto',
                   }}
                   className="flex flex-col items-center justify-start overflow-visible"
                 >
@@ -379,8 +396,6 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                       alt="Tarot Card Back"
                       className="w-full h-full object-cover pointer-events-none select-none"
                     />
-
-                    {/* Subtle Mystic Overlay (Removed for Performance) */}
 
                     {/* Golden Focus Glow */}
                     {isFocused && (
@@ -436,7 +451,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
       </div>
 
       {/* FOOTER CONTROLS & ASTROLABE RADAR MINI-MAP */}
-      <div 
+      <div
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-4xl flex items-center justify-center mt-6 z-30 px-4"
       >
@@ -448,7 +463,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
           <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full border border-mystic-gold/40 bg-mystic-dark/95 shadow-[0_0_25px_rgba(0,0,0,0.8)] p-1.5 flex items-center justify-center">
             <div className="absolute inset-2 rounded-full border border-dashed border-mystic-gold/25 pointer-events-none" />
             <div className="absolute inset-5 md:inset-6 rounded-full border border-mystic-gold/15 pointer-events-none" />
-            
+
             {/* Radar FOV Viewing Wedge */}
             <div
               className="absolute inset-0 pointer-events-none transition-transform duration-75"

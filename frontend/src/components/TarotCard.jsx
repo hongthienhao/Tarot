@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playSFX } from '../store/useSoundStore';
-import ProtectedImage from './ProtectedImage';
+
 
 // Rune symbols for the float-up particle effect (Phase 3)
 const RUNE_CHARS = ['✦', '✧', '⚝', '✴', '★', '✶', '⋆', '✺'];
@@ -58,17 +58,25 @@ const TarotCard = ({ card, index, onFlip, isRevealed: controlledIsRevealed, isSe
           rotateZ: { delay: 0.3, duration: 0.6 },
         }}
         className="w-full h-full relative preserve-3d shadow-2xl rounded-2xl"
+        style={{
+          WebkitTransformStyle: 'preserve-3d',
+          transformStyle: 'preserve-3d',
+        }}
       >
         {/* Front face (revealed) */}
-        <div className={`absolute inset-0 backface-hidden rotate-y-180 rounded-2xl overflow-hidden bg-mystic-dark border-2 transition-all duration-700 ${
-          justFlipped ? 'border-mystic-gold shadow-[0_0_60px_rgba(212,175,55,0.6)]' : 'border-mystic-gold/40'
-        }`}>
-          <ProtectedImage
+        <div
+          className={`absolute inset-0 backface-hidden rotate-y-180 rounded-2xl overflow-hidden bg-mystic-dark border-2 transition-all duration-700 ${
+            justFlipped ? 'border-mystic-gold shadow-[0_0_60px_rgba(212,175,55,0.6)]' : 'border-mystic-gold/40'
+          }`}
+          style={{ WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden' }}
+        >
+          <img
             src={card.image}
             alt={card.name}
             className="w-full h-full object-cover"
-            watermarkText="MYSTIC TAROT"
-            showWatermark={true}
+            loading="lazy"
+            decoding="async"
+            draggable={false}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-mystic-dark/40 via-transparent to-transparent opacity-60 pointer-events-none" />
 
@@ -99,12 +107,15 @@ const TarotCard = ({ card, index, onFlip, isRevealed: controlledIsRevealed, isSe
         </div>
 
         {/* Back face */}
-        <div className="absolute inset-0 backface-hidden rounded-2xl border-2 border-mystic-gold/40 bg-mystic-dark flex items-center justify-center overflow-hidden">
-          <ProtectedImage
+        <div
+          className="absolute inset-0 backface-hidden rounded-2xl border-2 border-mystic-gold/40 bg-mystic-dark flex items-center justify-center overflow-hidden"
+          style={{ WebkitBackfaceVisibility: 'hidden', backfaceVisibility: 'hidden' }}
+        >
+          <img
             src="/assets/cards/card_back.jpeg"
             alt="Tarot Card Back"
             className="w-full h-full object-cover"
-            showWatermark={false}
+            draggable={false}
           />
           <div className="absolute inset-0 bg-mystic-gold/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
           <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-mystic-gold/40 rounded-tl-sm pointer-events-none" />

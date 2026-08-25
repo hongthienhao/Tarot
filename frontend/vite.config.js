@@ -33,4 +33,27 @@ export default defineConfig({
     tailwindcss(),
     hotlinkProtection(),
   ],
+  build: {
+    // Target modern Safari (iOS 14+) for ES2020+ support while keeping broad compat
+    target: ['es2020', 'safari14'],
+    // Increase chunk warning threshold (framer-motion is large by design)
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        // Manual chunk splitting to improve caching and parallel loading
+        // NOTE: Vite 8 (rolldown) requires manualChunks as a function, not object
+        manualChunks: (id) => {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || id.includes('node_modules/react-router-dom')) {
+            return 'vendor-react';
+          }
+          if (id.includes('node_modules/framer-motion')) {
+            return 'vendor-motion';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'vendor-icons';
+          }
+        },
+      },
+    },
+  },
 })

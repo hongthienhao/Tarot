@@ -94,14 +94,36 @@ const VORTEX_CARDS = Array.from({ length: 16 }, (_, i) => {
   const a = (i/16)*2*Math.PI, r = 55+i*9;
   return { id: i, tx: Math.cos(a)*r, ty: Math.sin(a)*r, rot: 360+i*50, delay: i*0.05 };
 });
+// Lightweight 6-card simple cut animation for mobile
+const SIMPLE_CARDS = Array.from({ length: 6 }, (_, i) => ({
+  id: i, delay: i * 0.12, offsetX: (i % 2 === 0 ? -1 : 1) * (i + 1) * 6, offsetY: -i * 3,
+}));
 const EFFECTS = ['riffle','fan','overhand','vortex'];
 const CC = 'absolute w-32 h-52 rounded-xl overflow-hidden border border-mystic-gold/40 shadow-2xl';
 const CS = { left:0, top:0 };
-const CardImg = () => (<><ProtectedImage src="/assets/cards/card_back.jpeg" className="w-full h-full object-cover" alt="" /><div className="absolute inset-0 bg-gradient-to-b from-mystic-gold/5 to-mystic-dark/20" /></>);
+const CardImg = () => (<><img src="/assets/cards/card_back.jpeg" className="w-full h-full object-cover pointer-events-none" alt="" draggable={false} /><div className="absolute inset-0 bg-gradient-to-b from-mystic-gold/5 to-mystic-dark/20" /></>);
 const Sparkle = () => (
   <motion.div className="absolute inset-[-24px] rounded-full pointer-events-none" style={{filter:'blur(14px)'}}
     animate={{backgroundColor:['rgba(212,175,55,0)','rgba(212,175,55,0.3)','rgba(212,175,55,0)']}}
     transition={{duration:0.35,delay:1.08,ease:'easeOut'}} />
+);
+
+// Lightweight shuffle for mobile — 6 cards, simple cut motion
+const SimpleDealEffect = () => (
+  <div className="relative pointer-events-none" style={{width:128,height:208}}>
+    {SIMPLE_CARDS.map(c => (
+      <motion.div key={c.id} className={CC} style={CS}
+        initial={{x: c.offsetX * 0.5, y: c.offsetY * 0.5, rotate: c.offsetX * 0.15, opacity: 0.85}}
+        animate={{
+          x: [c.offsetX * 0.5, c.offsetX, c.offsetX * 0.5, 0],
+          y: [c.offsetY * 0.5, c.offsetY, c.offsetY * 0.5, 0],
+          rotate: [c.offsetX * 0.15, c.offsetX * 0.3, c.offsetX * 0.1, 0],
+          opacity: [0.85, 1, 0.9, 0.85],
+        }}
+        transition={{duration:1.3, delay: c.delay, ease:'easeInOut', times:[0,0.35,0.65,1]}}
+      ><CardImg /></motion.div>
+    ))}
+  </div>
 );
 
 const RiffleEffect = () => (
@@ -175,29 +197,39 @@ const VortexEffect = () => (
 
 const DealingOverlay = ({ visible }) => {
   const effectRef = useRef(null);
+  const isMobileRef = useRef(typeof window !== 'undefined' && window.innerWidth < 768);
   if (visible && !effectRef.current) effectRef.current = EFFECTS[Math.floor(Math.random()*EFFECTS.length)];
   if (!visible) effectRef.current = null;
   const eff = effectRef.current;
+  const useMobileEffect = isMobileRef.current;
   return (
     <AnimatePresence>
       {visible && (
         <motion.div
           initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0,transition:{duration:0.4}}}
           transition={{duration:0.25}}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-mystic-dark/95 backdrop-blur-md"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-mystic-dark/95 backdrop-blur-sm"
           style={{cursor:'none',userSelect:'none'}}
           onPointerDown={e=>{e.stopPropagation();e.preventDefault();}}
           onPointerMove={e=>{e.stopPropagation();e.preventDefault();}}
           onClick={e=>{e.stopPropagation();e.preventDefault();}}
         >
+          {/* Background ambient glow — reduced blur on mobile */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <motion.div animate={{scale:[1,1.35,1],opacity:[0.15,0.45,0.15]}} transition={{duration:1.5,repeat:Infinity,ease:'easeInOut'}}
-              className="w-80 h-80 bg-mystic-gold/20 rounded-full blur-[100px]" />
+              className={`rounded-full ${useMobileEffect ? 'w-48 h-48 bg-mystic-gold/15 blur-[60px]' : 'w-80 h-80 bg-mystic-gold/20 blur-[100px]'}`} />
           </div>
-          {eff==='riffle'   && <RiffleEffect />}
-          {eff==='fan'      && <FanEffect />}
-          {eff==='overhand' && <OverhandEffect />}
-          {eff==='vortex'   && <VortexEffect />}
+          {/* Mobile gets lightweight effect, desktop gets full riffle/fan/vortex */}
+          {useMobileEffect ? (
+            <SimpleDealEffect />
+          ) : (
+            <>
+              {eff==='riffle'   && <RiffleEffect />}
+              {eff==='fan'      && <FanEffect />}
+              {eff==='overhand' && <OverhandEffect />}
+              {eff==='vortex'   && <VortexEffect />}
+            </>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
