@@ -1,9 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Mail, Globe, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import UserGuideModal from '../UserGuideModal';
+import PrivacyPolicyModal from '../PrivacyPolicyModal';
+import TermsModal from '../TermsModal';
+import ContactModal from '../ContactModal';
+import FAQModal from '../FAQModal';
+
 const Footer = () => {
+  const [isFAQOpen, setIsFAQOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   const handleSmoothScroll = (e, id) => {
     e.preventDefault();
@@ -91,10 +102,11 @@ const Footer = () => {
           <div>
             <h4 className="text-mystic-gold uppercase tracking-widest text-sm font-bold mb-6">Hỗ trợ</h4>
             <ul className="space-y-4 text-sm text-gray-400 font-light">
-              <li><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-mystic-gold transition-colors">Câu hỏi thường gặp</a></li>
-              <li><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-mystic-gold transition-colors">Chính sách bảo mật</a></li>
-              <li><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-mystic-gold transition-colors">Điều khoản dịch vụ</a></li>
-              <li><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-mystic-gold transition-colors">Liên hệ</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setIsFAQOpen(true); }} className="hover:text-mystic-gold transition-colors">Câu hỏi thường gặp</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setIsGuideOpen(true); }} className="hover:text-mystic-gold transition-colors">Hướng dẫn sử dụng</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setIsPrivacyOpen(true); }} className="hover:text-mystic-gold transition-colors">Chính sách bảo mật</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setIsTermsOpen(true); }} className="hover:text-mystic-gold transition-colors">Điều khoản dịch vụ</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setIsContactOpen(true); }} className="hover:text-mystic-gold transition-colors">Liên hệ</a></li>
             </ul>
           </div>
         </div>
@@ -122,6 +134,13 @@ const Footer = () => {
             &copy; 2026 Tarot Mystic Space. All Rights Reserved. Crafted for the soul.
           </p>
         </div>
+        
+        {/* Modals */}
+        <FAQModal isOpen={isFAQOpen} onClose={() => setIsFAQOpen(false)} />
+        <UserGuideModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+        <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
+        <TermsModal isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
+        <ContactModal isOpen={isContactOpen} onClose={() => setIsContactOpen(false)} />
     </footer>
   );
 };
