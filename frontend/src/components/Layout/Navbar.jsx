@@ -6,6 +6,11 @@ import useAuthStore from '../../store/useAuthStore';
 import MysticStar from '../MysticStar';
 import useScrollLock from '../../hooks/useScrollLock';
 
+const ScrollLockWrapper = () => {
+  useScrollLock(true);
+  return null;
+};
+
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -15,9 +20,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const userMenuRef = useRef(null);
-
-  // Lock body scroll when mobile menu is open to prevent layout shifts on iOS Safari
-  useScrollLock(isMobileMenuOpen);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -258,6 +260,9 @@ const Navbar = () => {
               className="fixed top-0 right-0 bottom-0 w-4/5 max-w-sm bg-mystic-dark border-l border-mystic-gold/20 p-6 z-50 flex flex-col justify-between overflow-y-auto md:hidden shadow-2xl"
               style={{ WebkitOverflowScrolling: 'touch', willChange: 'transform' }}
             >
+              {/* Keep scroll locked until this motion div completely unmounts (after exit animation) */}
+              <ScrollLockWrapper />
+              
               {/* Header inside drawer */}
               <div className="flex items-center justify-between pb-6 border-b border-white/10">
                 <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2">
