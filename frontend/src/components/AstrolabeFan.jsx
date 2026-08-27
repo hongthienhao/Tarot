@@ -258,7 +258,8 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
         const isFocused = focusedCardIndex === i;
 
         const normAngle = Math.abs(relAngle) / maxVisibleAngle;
-        const smoothCosineOpacity = Math.max(0, 1 - Math.pow(normAngle, 3));
+        const fadePower = isMobile ? 6 : 3;
+        const smoothCosineOpacity = Math.max(0, 1 - Math.pow(normAngle, fadePower));
         const cardOpacity = isSelected ? 0 : isFocused ? 1 : smoothCosineOpacity;
 
         candidates.push({
@@ -283,7 +284,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
     const capped = rest.slice(0, maxVisible - focused.length);
 
     return [...focused, ...capped];
-  }, [rotationAngle, anglePerCard, halfDeckOffset, maxVisibleAngle, wheelRadius, selectedCards, focusedCardIndex, maxVisible]);
+  }, [rotationAngle, anglePerCard, halfDeckOffset, maxVisibleAngle, wheelRadius, selectedCards, focusedCardIndex, maxVisible, isMobile]);
 
   const minAngle = -(totalArcSpan / 2);
   const maxAngle = (totalArcSpan / 2);
