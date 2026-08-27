@@ -222,135 +222,133 @@ const Navbar = () => {
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 text-mystic-gold hover:text-white transition-colors cursor-pointer"
+              className="p-2 text-mystic-gold hover:text-white transition-colors cursor-pointer relative z-50"
               aria-label="Toggle Menu"
             >
               {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
           </div>
         </div>
+
+        {/* --- Mobile Popup Menu --- */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <>
+              {/* Light Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="fixed inset-0 bg-black/40 -z-10 md:hidden"
+                style={{ touchAction: 'none' }}
+              />
+
+              {/* Popup Menu */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: -8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: -8 }}
+                transition={{ duration: 0.15, ease: "easeOut" }}
+                className="absolute top-full right-3.5 sm:right-6 mt-2 md:hidden w-[calc(100vw-28px)] max-w-[340px] bg-mystic-dark border border-mystic-gold/30 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] z-50 overflow-hidden flex flex-col"
+                style={{ maxHeight: 'calc(100vh - 120px)' }}
+              >
+                <div className="overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                  <div className="p-3">
+                    {/* Navigation Links list */}
+                    <div className="flex flex-col gap-1">
+                      {visibleNavLinks.map((link) => {
+                        const active = isLinkActive(link);
+                        const Icon = link.icon;
+                        return (
+                          <a
+                            key={link.name}
+                            href={link.href}
+                            onClick={(e) => handleNavLinkClick(e, link)}
+                            className={`text-sm font-semibold uppercase tracking-[0.15em] transition-colors px-4 py-3.5 rounded-xl cursor-pointer flex items-center gap-3 ${
+                              active
+                                ? 'bg-mystic-gold/15 text-mystic-gold'
+                                : 'text-gray-300 hover:bg-white/5 hover:text-mystic-gold'
+                            }`}
+                          >
+                            <Icon className="w-4.5 h-4.5 text-mystic-gold drop-shadow-[0_0_6px_rgba(212,175,55,0.6)] shrink-0" />
+                            <span>{link.name}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons panel */}
+                  <div className="p-3 pt-2 bg-black/20 border-t border-white/5">
+                    {isAuthenticated ? (
+                      <div className="flex flex-col gap-2">
+                        <Link
+                          to="/profile"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 bg-mystic-gold/10 text-mystic-gold rounded-xl transition-colors text-sm font-medium border border-mystic-gold/20"
+                        >
+                          {user?.avatar ? (
+                            <img src={user.avatar} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 border border-mystic-gold/40" referrerPolicy="no-referrer" />
+                          ) : (
+                            <User className="w-5 h-5 shrink-0 text-mystic-gold" />
+                          )}
+                          <span className="font-semibold truncate flex-1">{user?.fullName || user?.name}</span>
+                          {user?.starPoints !== undefined && (
+                            <span className="flex items-center gap-1.5 text-xs text-amber-300 font-bold bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20 whitespace-nowrap shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                              <MysticStar className="w-3.5 h-3.5 shrink-0" />
+                              <span>{user.starPoints}</span>
+                            </span>
+                          )}
+                        </Link>
+
+                        <Link
+                          to="/profile?tab=stars"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 bg-white/5 text-amber-300 hover:text-amber-200 hover:bg-white/10 rounded-xl transition-colors text-sm font-medium border border-white/5"
+                        >
+                          <MysticStar className="w-5 h-5 shrink-0" />
+                          <span>Tinh Tú & Điểm danh</span>
+                        </Link>
+
+                        {user?.role === 'ADMIN' && (
+                          <Link
+                            to="/admin"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-3 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20 rounded-xl transition-colors text-sm font-medium border border-purple-500/20"
+                          >
+                            <Shield className="w-5 h-5 shrink-0" />
+                            <span>Quản trị Admin</span>
+                          </Link>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className="flex items-center gap-3 px-4 py-3 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 rounded-xl transition-colors text-sm font-medium border border-rose-500/20 cursor-pointer w-full text-left"
+                        >
+                          <LogOut className="w-5 h-5 shrink-0" />
+                          <span>Đăng xuất</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                        <button className="w-full py-3.5 bg-gradient-to-r from-[#d4af37] via-[#f3e5ab] to-[#aa7c11] text-mystic-dark font-bold uppercase tracking-widest text-xs rounded-xl shadow-lg cursor-pointer flex items-center justify-center gap-2 transition-transform active:scale-95">
+                          <Sparkles className="w-4.5 h-4.5 text-mystic-dark" />
+                          <span>Đăng Nhập</span>
+                        </button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </nav>
-
-      {/* --- Mobile Drawer Menu --- */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            {/* Backdrop — no backdrop-blur: causes iOS Safari rendering bug with overflow-x:hidden */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-black/75 z-40 md:hidden"
-              style={{ touchAction: 'none' }}
-            />
-
-            {/* Menu Drawer */}
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 bottom-0 w-4/5 max-w-sm bg-mystic-dark border-l border-mystic-gold/20 p-6 z-50 flex flex-col justify-between overflow-y-auto md:hidden shadow-2xl"
-              style={{ WebkitOverflowScrolling: 'touch' }}
-            >
-              {/* Header inside drawer */}
-              <div className="flex items-center justify-between pb-6 border-b border-white/10">
-                <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2">
-                  <Sparkles className="w-6 h-6 text-mystic-gold" />
-                  <span className="text-lg font-serif tracking-widest gold-text font-bold">TAROT MYSTIC</span>
-                </Link>
-                <button
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 text-gray-400 hover:text-white"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              {/* Navigation Links list */}
-              <div className="flex flex-col gap-3 my-6">
-                {visibleNavLinks.map((link) => {
-                  const active = isLinkActive(link);
-                  const Icon = link.icon;
-                  return (
-                    <a
-                      key={link.name}
-                      href={link.href}
-                      onClick={(e) => handleNavLinkClick(e, link)}
-                      className={`text-sm font-semibold uppercase tracking-[0.15em] transition-colors py-2.5 border-b border-white/5 cursor-pointer flex items-center gap-3 ${
-                        active
-                          ? 'text-mystic-gold border-b-mystic-gold/30'
-                          : 'text-gray-300 hover:text-mystic-gold'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4 text-mystic-gold" />
-                      <span>{link.name}</span>
-                    </a>
-                  );
-                })}
-              </div>
-
-              {/* Action Buttons panel */}
-              <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-3">
-                {isAuthenticated ? (
-                  <>
-                    <Link
-                      to="/profile"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-3.5 py-2.5 text-mystic-gold border border-mystic-gold/20 rounded-2xl bg-mystic-gold/5"
-                    >
-                      {user?.avatar ? (
-                        <img src={user.avatar} alt="" className="w-7 h-7 rounded-full object-cover shrink-0 border border-mystic-gold/40" referrerPolicy="no-referrer" />
-                      ) : (
-                        <User className="w-5 h-5 text-mystic-gold shrink-0" />
-                      )}
-                      <span className="text-sm font-semibold truncate">{user?.fullName || user?.name}</span>
-                      <span className="ml-auto text-xs text-amber-300 font-bold">{user?.starPoints ?? 0} ⭐</span>
-                    </Link>
-
-                    <Link
-                      to="/profile"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 bg-mystic-gold/10 text-mystic-gold rounded-xl transition-colors text-sm font-medium border border-mystic-gold/20"
-                    >
-                      <User className="w-4.5 h-4.5 text-mystic-gold shrink-0" />
-                      <span>Hồ Sơ & Hành Trình</span>
-                    </Link>
-
-                    <Link
-                      to="/profile?tab=stars"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-3 bg-white/5 text-amber-300 hover:text-amber-200 rounded-xl transition-colors text-sm font-medium border border-white/5"
-                    >
-                      <MysticStar className="w-4.5 h-4.5 text-amber-300 shrink-0" />
-                      <span>Tinh Tú & Điểm danh</span>
-                    </Link>
-
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setIsMobileMenuOpen(false);
-                      }}
-                      className="flex items-center gap-3 px-4 py-3 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 rounded-xl transition-colors text-sm font-medium border border-rose-500/20 cursor-pointer"
-                    >
-                      <LogOut className="w-4.5 h-4.5 text-rose-400 shrink-0" />
-                      <span>Đăng xuất</span>
-                    </button>
-                  </>
-                ) : (
-                  <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                    <button className="w-full py-3.5 bg-gradient-to-r from-[#d4af37] via-[#f3e5ab] to-[#aa7c11] text-mystic-dark font-bold uppercase tracking-widest text-xs rounded-xl shadow-lg cursor-pointer flex items-center justify-center gap-2">
-                      <Sparkles className="w-4 h-4 text-mystic-dark" />
-                      <span>Đăng Nhập</span>
-                    </button>
-                  </Link>
-                )}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </>
   );
 };
