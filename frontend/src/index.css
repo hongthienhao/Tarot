@@ -44,16 +44,18 @@
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior-y: none;
 }
 
 body {
   margin: 0;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: radial-gradient(circle at top, #1a0b2e 0%, #0f0716 100%);
   /* NOTE: overflow-x:hidden on body clips fixed-position elements on iOS Safari.
      Use overflow-x:hidden on html instead, which is safer for fixed overlays. */
   overflow-x: hidden;
+  overscroll-behavior-y: none;
 }
 
 /* Ensure drawn tray has offset when scrolled into view (accounts for sticky nav) */

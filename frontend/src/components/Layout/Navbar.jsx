@@ -79,7 +79,7 @@ const Navbar = () => {
     <>
       <nav 
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          isScrolled ? 'py-4 bg-mystic-dark/85 backdrop-blur-md border-b border-mystic-gold/10' : 'py-8 bg-transparent'
+          isScrolled ? 'py-4 bg-mystic-dark/95 md:bg-mystic-dark/85 md:backdrop-blur-md border-b border-mystic-gold/10' : 'py-8 bg-transparent'
         }`}
       >
         <div className="max-w-[1536px] mx-auto px-3.5 sm:px-6 md:px-8 flex justify-between items-center gap-4">
@@ -251,7 +251,7 @@ const Navbar = () => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: -8 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="absolute top-full right-3.5 sm:right-6 mt-2 md:hidden w-[calc(100vw-28px)] max-w-[340px] bg-mystic-dark border border-mystic-gold/30 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] z-50 overflow-hidden flex flex-col"
+                className="absolute top-full right-3.5 sm:right-6 mt-2 md:hidden w-[calc(100vw-28px)] max-w-[340px] bg-mystic-dark border border-mystic-gold/30 rounded-2xl shadow-xl z-50 overflow-hidden flex flex-col will-change-transform"
                 style={{ maxHeight: 'calc(100vh - 120px)' }}
               >
                 <div className="overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>

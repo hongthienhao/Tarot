@@ -402,9 +402,9 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                       e.stopPropagation();
                       handleCardClick(card.index);
                     }}
-                    className={`relative w-full h-full rounded-xl overflow-hidden cursor-pointer shadow-2xl transition-all duration-300 ${
+                    className={`relative w-full h-full rounded-xl overflow-hidden cursor-pointer md:shadow-2xl shadow-md transition-all duration-300 ${
                       isFocused
-                        ? 'border-2 border-mystic-gold shadow-[0_0_30px_rgba(212,175,55,0.9)]'
+                        ? 'border-2 border-mystic-gold md:shadow-[0_0_30px_rgba(212,175,55,0.9)] shadow-[0_0_15px_rgba(212,175,55,0.7)]'
                         : 'border border-mystic-gold/25'
                     } bg-mystic-dark`}
                   >
@@ -477,7 +477,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
             <Compass size={12} /> La Bàn Chiêm Tinh
           </div>
 
-          <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full border border-mystic-gold/40 bg-mystic-dark/95 shadow-[0_0_25px_rgba(0,0,0,0.8)] p-1.5 flex items-center justify-center">
+          <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full border border-mystic-gold/40 bg-mystic-dark/95 md:shadow-[0_0_25px_rgba(0,0,0,0.8)] shadow-lg p-1.5 flex items-center justify-center">
             <div className="absolute inset-2 rounded-full border border-dashed border-mystic-gold/25 pointer-events-none" />
             <div className="absolute inset-5 md:inset-6 rounded-full border border-mystic-gold/15 pointer-events-none" />
 
