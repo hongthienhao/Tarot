@@ -4,10 +4,7 @@ import { Compass, Sparkles, X } from 'lucide-react';
 import useSoundStore from '../store/useSoundStore';
 import ProtectedImage from './ProtectedImage';
 
-// Hard cap on cards rendered simultaneously to prevent OOM on Safari iOS
-const MAX_VISIBLE_MOBILE = 15;
-const MAX_VISIBLE_DESKTOP = 25;
-
+// Removed hard caps, we now compute dynamic maxVisible inside useMemo based on geometric visible angle
 const AstrolabeFan = ({ targetQuantity, onSelect }) => {
   const TOTAL_CARDS = 78;
   const { playSFX } = useSoundStore();
@@ -29,7 +26,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
   const isMobile = windowWidth < 768;
 
   // DYNAMIC PIXEL-BASED SCALING & CLAMPING
-  const { cardWidth, cardHeight, wheelRadius, maxVisibleAngle, anglePerCard } = useMemo(() => {
+  const { cardWidth, cardHeight, wheelRadius, maxVisibleAngle, anglePerCard, maxVisible } = useMemo(() => {
     let cWidth = 120;
     let radius = 920;
     let maxAngle = 22;
@@ -55,12 +52,21 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
     const cHeight = cWidth * 1.7;
     const aStep = isMobile ? 1.45 : 1.35;
 
+    if (isMobile) {
+      const targetCards = 11;
+      const targetAngle = (targetCards * aStep) / 2;
+      maxAngle = Math.min(maxAngle, targetAngle);
+    }
+    
+    const calcMaxVisible = Math.ceil((maxAngle * 2) / aStep) + 2;
+
     return {
       cardWidth: cWidth,
       cardHeight: cHeight,
       wheelRadius: radius,
       maxVisibleAngle: maxAngle,
-      anglePerCard: aStep
+      anglePerCard: aStep,
+      maxVisible: calcMaxVisible
     };
   }, [windowWidth, isMobile]);
 
@@ -68,6 +74,8 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
 
   // Drag & Interaction state
   const isDraggingRef = useRef(false);
+  const isWheelingRef = useRef(false);
+  const wheelTimeoutRef = useRef(null);
   const startPosRef = useRef({ x: 0, y: 0 });
   const startAngleRef = useRef(0);
   const velocityRef = useRef(0);
@@ -79,6 +87,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
   useEffect(() => {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (wheelTimeoutRef.current) clearTimeout(wheelTimeoutRef.current);
     };
   }, []);
 
@@ -176,6 +185,14 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
     e.preventDefault();
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     const delta = e.deltaY * 0.008;
+    
+    isWheelingRef.current = true;
+    if (wheelTimeoutRef.current) clearTimeout(wheelTimeoutRef.current);
+    wheelTimeoutRef.current = setTimeout(() => {
+      isWheelingRef.current = false;
+      setRotationAngle(prev => prev); // Force re-render to restore CSS transition when wheel stops
+    }, 60);
+
     setRotationAngle(prev => {
       const minAngle = -(totalArcSpan / 2);
       const maxAngle = (totalArcSpan / 2);
@@ -224,8 +241,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
     }
   }, [focusedCardIndex, handleCancelFocus]);
 
-  // Render variables — capped at MAX_VISIBLE to prevent OOM on Safari iOS
-  const maxVisible = isMobile ? MAX_VISIBLE_MOBILE : MAX_VISIBLE_DESKTOP;
+  // Render variables
   const halfDeckOffset = (TOTAL_CARDS - 1) * anglePerCard / 2;
 
   const visibleCards = useMemo(() => {
@@ -242,7 +258,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
         const isFocused = focusedCardIndex === i;
 
         const normAngle = Math.abs(relAngle) / maxVisibleAngle;
-        const smoothCosineOpacity = Math.max(0, Math.cos(normAngle * (Math.PI / 2)));
+        const smoothCosineOpacity = Math.max(0, 1 - Math.pow(normAngle, 3));
         const cardOpacity = isSelected ? 0 : isFocused ? 1 : smoothCosineOpacity;
 
         candidates.push({
@@ -273,7 +289,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
   const maxAngle = (totalArcSpan / 2);
   const progressRatio = Math.max(0, Math.min(1, (rotationAngle - minAngle) / (maxAngle - minAngle || 1)));
 
-  const isMoving = isDraggingRef.current || Math.abs(velocityRef.current) >= 0.01;
+  const isMoving = isDraggingRef.current || isWheelingRef.current || Math.abs(velocityRef.current) >= 0.01;
 
   return (
     <motion.div
@@ -370,7 +386,7 @@ const AstrolabeFan = ({ targetQuantity, onSelect }) => {
                     })`,
                     opacity: card.opacity,
                     zIndex: card.zIndex,
-                    transition: isDraggingRef.current
+                    transition: isMoving
                       ? 'none'
                       : 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease, box-shadow 0.25s ease',
                     WebkitBackfaceVisibility: 'hidden',
