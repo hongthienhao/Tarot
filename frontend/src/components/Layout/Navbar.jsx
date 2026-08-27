@@ -4,6 +4,7 @@ import { Sparkles, Menu, X, LogOut, History, User, Home, Compass, Layers, BookOp
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/useAuthStore';
 import MysticStar from '../MysticStar';
+import useScrollLock from '../../hooks/useScrollLock';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -14,6 +15,9 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const userMenuRef = useRef(null);
+
+  // Lock body scroll when mobile menu is open to prevent layout shifts on iOS Safari
+  useScrollLock(isMobileMenuOpen);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -250,9 +254,9 @@ const Navbar = () => {
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              transition={{ type: 'tween', ease: 'easeInOut', duration: 0.3 }}
               className="fixed top-0 right-0 bottom-0 w-4/5 max-w-sm bg-mystic-dark border-l border-mystic-gold/20 p-6 z-50 flex flex-col justify-between overflow-y-auto md:hidden shadow-2xl"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              style={{ WebkitOverflowScrolling: 'touch', willChange: 'transform' }}
             >
               {/* Header inside drawer */}
               <div className="flex items-center justify-between pb-6 border-b border-white/10">
