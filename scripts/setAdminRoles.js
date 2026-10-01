@@ -1,4 +1,4 @@
-import prisma from './src/config/prismaClient.js';
+import prisma from '../src/config/prismaClient.js';
 
 async function fixRoles() {
   // Reset all to USER
