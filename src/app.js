@@ -53,11 +53,12 @@ app.use('/assets', (req, res, next) => {
     'http://localhost:5173',
     'http://localhost:3000',
     'http://localhost:4173',
-    'https://mystictarotth.vercel.app'
+    'https://mystictarotth.vercel.app',
+    'https://tarotmysticth.vercel.app'
   ];
 
   // If there's no referer (direct access) or referer is not in allowed domains
-  if (!referer || !allowedDomains.some(domain => referer.startsWith(domain))) {
+  if (!referer || (!allowedDomains.some(domain => referer.startsWith(domain)) && !referer.includes('.vercel.app'))) {
     return res.status(403).json({
       status: 'fail',
       message: 'Access Denied: Direct access to this resource is not allowed.'
@@ -79,6 +80,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
       'http://localhost:3000',
       'http://localhost:4173',
       'https://mystictarotth.vercel.app',
+      'https://tarotmysticth.vercel.app',
     ];
 
 app.use(
@@ -87,7 +89,11 @@ app.use(
       // Allow requests with no origin (like mobile apps, postman, or curl)
       if (!origin) return callback(null, true);
       
-      if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      if (
+        allowedOrigins.indexOf(origin) !== -1 ||
+        allowedOrigins.includes('*') ||
+        /\.vercel\.app$/.test(new URL(origin).hostname)
+      ) {
         return callback(null, true);
       } else {
         return callback(new Error('Not allowed by CORS'));

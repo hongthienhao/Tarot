@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import 'dotenv/config';
 import app from './app.js';
 
 // Handle uncaught exceptions
@@ -7,8 +7,6 @@ process.on('uncaughtException', (err) => {
   console.log(err.name, err.message);
   process.exit(1);
 });
-
-dotenv.config();
 
 const port = process.env.PORT || 3000;
 
